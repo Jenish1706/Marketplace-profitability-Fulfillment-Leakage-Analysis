@@ -1,0 +1,128 @@
+﻿# pipeline/config.yaml
+# Declarative Pipeline Configuration for Marketplace Profitability Diagnostic
+
+data_source:
+  raw_directory: data/raw
+
+database:
+  path: marketplace.duckdb
+
+sources:
+  orders:
+    file: olist_orders_dataset.csv
+    table: olist_orders
+    primary_key:
+      - order_id
+    required_columns:
+      - order_id
+      - customer_id
+      - order_status
+      - order_purchase_timestamp
+      - order_estimated_delivery_date
+
+  order_items:
+    file: olist_order_items_dataset.csv
+    table: olist_order_items
+    primary_key:
+      - order_id
+      - order_item_id
+    required_columns:
+      - order_id
+      - order_item_id
+      - product_id
+      - seller_id
+      - price
+      - freight_value
+
+  order_payments:
+    file: olist_order_payments_dataset.csv
+    table: olist_order_payments
+    primary_key:
+      - order_id
+      - payment_sequential
+    required_columns:
+      - order_id
+      - payment_sequential
+      - payment_type
+      - payment_value
+
+  order_reviews:
+    file: olist_order_reviews_dataset.csv
+    table: olist_order_reviews
+    primary_key:
+      - review_id
+      - order_id
+    required_columns:
+      - review_id
+      - order_id
+      - review_score
+
+  products:
+    file: olist_products_dataset.csv
+    table: olist_products
+    primary_key:
+      - product_id
+    required_columns:
+      - product_id
+      - product_category_name
+
+  sellers:
+    file: olist_sellers_dataset.csv
+    table: olist_sellers
+    primary_key:
+      - seller_id
+    required_columns:
+      - seller_id
+      - seller_state
+
+  customers:
+    file: olist_customers_dataset.csv
+    table: olist_customers
+    primary_key:
+      - customer_id
+    required_columns:
+      - customer_id
+      - customer_unique_id
+      - customer_state
+
+  geolocation:
+    file: olist_geolocation_dataset.csv
+    table: olist_geolocation
+    primary_key:
+      - geolocation_zip_code_prefix
+    required_columns:
+      - geolocation_zip_code_prefix
+      - geolocation_lat
+      - geolocation_lng
+      - geolocation_state
+
+  category_translation:
+    file: product_category_name_translation.csv
+    table: product_category_name_translation
+    primary_key:
+      - product_category_name
+    required_columns:
+      - product_category_name
+      - product_category_name_english
+
+validation:
+  financial_non_negative:
+    - olist_order_items.price
+    - olist_order_items.freight_value
+    - olist_order_payments.payment_value
+  date_fields_parseable:
+    - olist_orders.order_purchase_timestamp
+    - olist_orders.order_estimated_delivery_date
+
+orchestration:
+  sql_scripts_directory: sql
+  sql_scripts:
+    - 01_schema.sql
+    - 02_data_quality.sql
+    - 03_order_item_fact.sql
+    - 04_kpi_layer.sql
+    - 05_root_cause_analysis.sql
+    - 06_pareto_analysis.sql
+    - 07_intervention_priority.sql
+  verification_script: tests/verify_pipeline.py
+  logging_directory: logs

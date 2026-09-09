@@ -1,0 +1,5 @@
+priority_tier,seller_count,pct_of_seller_base,total_orders,total_gmv,total_late_items,total_late_transaction_exposure,pct_of_platform_late_exposure,recoverable_conservative_10pct,recoverable_base_25pct,recoverable_optimistic_40pct
+P1 - Immediate Intervention,83,2.68,19046,2349311.83,2546,377768.41,27.95,37776.84,94442.10,151107.36
+P2 - Operational Investigation,272,8.79,43025,5298908.12,3652,504623.53,37.33,50462.35,126155.88,201849.41
+P3 - Operational Monitoring,149,4.81,10962,1552203.48,881,153332.79,11.34,15333.28,38333.20,61333.12
+P4 - Standard Governance,2591,83.72,26977,4391220.27,1635,315900.23,23.37,31590.02,78975.06,126360.09

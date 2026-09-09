@@ -1,0 +1,17 @@
+﻿# DuckDB databases and WAL
+*.duckdb
+*.duckdb.wal
+
+# Runtime logs
+logs/*.json
+logs/*.log
+!logs/.gitkeep
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Scratch files
+scratch/
