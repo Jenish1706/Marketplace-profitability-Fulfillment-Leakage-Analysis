@@ -114,9 +114,9 @@ SELECT
     ROUND(SUM(total_late_transaction_exposure), 2) AS total_late_transaction_exposure,
     
     -- Level 3: Scenario-Based Late GMV Exposure Mitigation (10%, 25%, 40% scenarios)
-    ROUND(SUM(seller_late_exposure) * 0.10, 2) AS scenario_mitigation_conservative_10pct,
-    ROUND(SUM(seller_late_exposure) * 0.25, 2) AS scenario_mitigation_base_25pct,
-    ROUND(SUM(seller_late_exposure) * 0.40, 2) AS scenario_mitigation_optimistic_40pct
+    ROUND(ROUND(SUM(seller_late_exposure), 2) * 0.10, 2) AS scenario_mitigation_conservative_10pct,
+    ROUND(ROUND(SUM(seller_late_exposure), 2) * 0.25, 2) AS scenario_mitigation_base_25pct,
+    ROUND(ROUND(SUM(seller_late_exposure), 2) * 0.40, 2) AS scenario_mitigation_optimistic_40pct
 FROM view_seller_intervention_matrix
 GROUP BY priority_tier
 ORDER BY priority_tier;

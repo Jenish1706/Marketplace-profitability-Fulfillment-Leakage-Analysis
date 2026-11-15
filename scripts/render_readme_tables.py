@@ -109,7 +109,12 @@ def update_readme(check_only=False):
         norm_updated = updated.replace("\r\n", "\n").strip()
         norm_content = content.replace("\r\n", "\n").strip()
         if norm_updated != norm_content:
+            import difflib
+            diff = list(difflib.unified_diff(norm_content.splitlines(), norm_updated.splitlines(), fromfile="README", tofile="UPDATED"))
             print("ERROR: README.md tables do not match database artifacts!")
+            print("Diff preview:")
+            for line in diff[:15]:
+                print("  ", line)
             sys.exit(1)
         else:
             print("CHECK PASS: README.md tables match database artifacts perfectly.")
