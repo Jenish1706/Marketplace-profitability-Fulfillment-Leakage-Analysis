@@ -138,9 +138,11 @@ Intra-state São Paulo deliveries (SP $\to$ SP) operate efficiently (6.10% late 
 - **1–2 Days Late:** Drops to **3.51** (25.5% low reviews).
 - **3–5 Days Late:** Collapses to **2.47** (56.7% low reviews).
 - **>5 Days Late:** Plummets to **1.74** (78.1% low reviews $\le 2$ stars).
-- **Review Timing Nuance:** Among late orders, 70.10% of reviews were submitted *before* the order was delivered (reflecting prompt arrival survey response upon promised date breach, rather than post-delivery satisfaction).
+- **Review Timing Confounder (P0-3):** Among late orders, **70.10%** of customer reviews were submitted *before* package arrival (evaluating an order that was on average 3.73 days overdue at survey response, vs 13.82 days overdue at final delivery).
 - **Non-Parametric Tests:** Kruskal-Wallis $H = 10,167.48$ ($p < 10^{-15}$); Mann-Whitney $U$ rank-biserial effect size $r = -0.781$ for $>5$ days late.
-- **Multivariate Logistic Regression:** Delivery delay is strongly conditionally associated with poor reviews ($\text{OR} = 1.229 \text{ per late day}, p < 0.001$, $\text{coef} = 0.2060$), evaluated with non-negative delay (`delay_days_late = max(0, delivery_delay_days)`) and cluster-robust standard errors (clustered by seller state), controlling for log price, freight ratio, and interstate routing.
+- **Multivariate Econometric Specifications:**
+  - *Model A (Delivery-Date Specification):* Each completed late delivery day increases the odds of a low review by 22.9% ($\text{OR} = 1.229 \text{ per day}, p < 0.001$, $\beta = 0.2060$), evaluated with non-negative delay and seller-state cluster-robust standard errors.
+  - *Model B (Customer Information Set at Review Time — P0-3 Resolution):* Formulating the model strictly on what the customer observed at review submission reveals that the **binary unarrived state dominates**: an undelivered shipment at review time increases the odds of a bad review by **33.63×** ($\beta = 3.5153, p < 10^{-15}$), dropping continuous rating by **2.51 stars** ($\beta = -2.5125$). Once unarrived status is controlled for, the marginal per-day overdue effect drops to near-zero ($\text{OR} = 1.004, \beta = 0.0036$). Customer sentiment penalty is triggered by the breach of the promised date window itself (survey prompt on an unarrived parcel), rather than linear daily decay.
 
 ---
 

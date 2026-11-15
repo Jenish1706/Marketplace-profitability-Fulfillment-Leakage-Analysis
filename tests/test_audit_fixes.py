@@ -99,7 +99,7 @@ class TestAuditFixes(unittest.TestCase):
         self.assertGreater(carrier_late, seller_late, "Carrier transit delay accounts for majority (~71%) of late items")
 
     def test_p03_reviews_answered_before_delivery(self):
-        """P0-3 Fix Test: Verify review submission timing relative to package delivery."""
+        """P0-3 Fix Test: Verify review submission timing relative to package delivery and forward-looking bias."""
         q = """
         SELECT 
             is_late,
@@ -117,6 +117,24 @@ class TestAuditFixes(unittest.TestCase):
         rows = dict(self.con.execute(q).fetchall())
         self.assertAlmostEqual(rows[1], 70.10, delta=0.5, msg="~70% of late orders reviewed before delivery")
         self.assertLess(rows[0], 1.0, msg="<1% of on-time orders reviewed before delivery")
+
+        # Forward-looking delay gap test: reviews before delivery average 3.73 days overdue at review vs 13.82 days at delivery
+        q_gap = """
+        SELECT 
+            AVG(GREATEST(0, CAST(r.review_answer_timestamp AS DATE) - CAST(o.order_estimated_delivery_date AS DATE))) AS avg_overdue_review,
+            AVG(GREATEST(0, CAST(o.order_delivered_customer_date AS DATE) - CAST(o.order_estimated_delivery_date AS DATE))) AS avg_overdue_delivery
+        FROM fact_orders o
+        JOIN (
+            SELECT order_id, MAX(review_answer_timestamp) AS review_answer_timestamp
+            FROM olist_order_reviews
+            GROUP BY order_id
+        ) r ON o.order_id = r.order_id
+        WHERE o.order_status = 'delivered' AND o.is_late = 1 AND r.review_answer_timestamp < o.order_delivered_customer_date;
+        """
+        rev_days, del_days = self.con.execute(q_gap).fetchone()
+        self.assertAlmostEqual(rev_days, 3.73, delta=0.5)
+        self.assertAlmostEqual(del_days, 13.82, delta=0.5)
+        self.assertLess(rev_days, del_days - 8.0, "Customer evaluated non-arrival at ~3.7 days overdue, not final ~13.8 days delay")
 
     def test_p04_exposure_and_scenarios(self):
         """P0-4 Fix Test: Metric is named late-order exposure and scenarios, no 'recoverable' claims."""
