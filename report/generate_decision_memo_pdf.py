@@ -1,4 +1,15 @@
-﻿import os
+"""
+Executive Decision Memorandum Generator
+=========================================
+Generates a publication-grade, 2-page C-suite PDF memorandum summarizing
+the marketplace profitability, fulfillment leakage, seller Pareto concentration,
+and statistical delivery delay findings.
+
+Uses ReportLab with a two-pass NumberedCanvas to ensure exact 'Page X of Y'
+pagination and professional corporate document styling.
+"""
+
+import os
 import sys
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -8,7 +19,15 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen import canvas
 
+# Determine project root directory reliably regardless of invocation CWD
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+
 class NumberedCanvas(canvas.Canvas):
+    """
+    Two-pass canvas for dynamic total page count calculation and header/footer rendering.
+    Collects page states on first pass, calculates total pages, and paints running headers/footers.
+    """
     def __init__(self, *args, **kwargs):
         super(NumberedCanvas, self).__init__(*args, **kwargs)
         self._saved_page_states = []
@@ -45,7 +64,12 @@ class NumberedCanvas(canvas.Canvas):
         self.restoreState()
 
 def build_pdf():
-    pdf_path = "report/decision_memo.pdf"
+    """
+    Constructs the 2-page Executive Decision Memorandum PDF document.
+    Outputs to report/decision_memo.pdf anchored to the repository root.
+    """
+    pdf_path = os.path.join(PROJECT_ROOT, "report", "decision_memo.pdf")
+    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
     doc = SimpleDocTemplate(
         pdf_path,
         pagesize=letter,

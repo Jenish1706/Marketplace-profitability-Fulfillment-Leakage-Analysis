@@ -75,13 +75,13 @@ SELECT
         ELSE '4. Extreme (>50%)'
     END AS freight_burden_band,
     
-    -- Value Banding
+    -- Value Banding (Categorizes merchandise ticket size into standard commercial tiers)
     CASE 
-        WHEN oi.price < 50 THEN '1. Under R'
-        WHEN oi.price < 100 THEN '2. R - R'
-        WHEN oi.price < 250 THEN '3. R - R'
-        WHEN oi.price < 500 THEN '4. R - R'
-        ELSE '5. R+'
+        WHEN oi.price < 50 THEN '1. Under R$50'
+        WHEN oi.price < 100 THEN '2. R$50 - R$100'
+        WHEN oi.price < 250 THEN '3. R$100 - R$250'
+        WHEN oi.price < 500 THEN '4. R$250 - R$500'
+        ELSE '5. R$500+'
     END AS order_value_band,
 
     -- Fulfillment Performance Attributes

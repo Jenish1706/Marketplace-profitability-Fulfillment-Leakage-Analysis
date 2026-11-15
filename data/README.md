@@ -1,4 +1,4 @@
-﻿# Data Documentation & Lineage Dictionary
+# Data Documentation & Lineage Dictionary
 
 **Project:** Marketplace Profitability & Fulfillment Leakage Diagnostic  
 **Dataset Source:** [Brazilian E-Commerce Public Dataset by Olist (Kaggle)](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)  
@@ -37,9 +37,11 @@ A foundational complexity of the Olist dataset is that **an order can contain mu
 ### Controlled Analytical Modeling
 To prevent fan-out multiplication of commercial totals:
 1. **`fact_order_items` (Line-Item Grain):** Contains exactly 112,650 rows representing one physical line item. Financial sums across this table reconcile perfectly with raw totals (Total GMV: R$ 13,591,643.70; Total Freight: R$ 2,251,909.54).
-2. **`fact_orders` (Order Grain):** Contains exactly 99,441 rows representing distinct order entities.
-3. **Reviews Deduplication:** Multiple review responses for a single order are pre-aggregated to the mean score (`ROUND(AVG(review_score), 2)`) before joining to fact tables.
-4. **Payments Deduplication:** Split payments (e.g., voucher + credit card installments) are rolled up to `total_payment_value` at the order grain before joining.
+2. **`fact_orders` (Order Grain):** Contains exactly 99,441 rows representing distinct order entities. Operational rates (e.g. 97.02% delivery rate, 0.63% cancellation rate) are strictly calculated at this grain.
+3. **Decoupled KPI Aggregation:** In executive KPI summaries, order-level status counts are isolated into dedicated CTEs and decoupled from line-item counts. Naive joins calculate 110,197 delivered items against 98,666 itemized orders (an invalid 111.69%), whereas decoupled aggregation produces the exact 97.02% delivered order rate.
+4. **Order Value Tiering:** Commercial pricing is categorized into five standardized tiers: `1. Under R$50`, `2. R$50 - R$100`, `3. R$100 - R$250`, `4. R$250 - R$500`, `5. R$500+`.
+5. **Reviews Deduplication:** Multiple review responses for a single order are pre-aggregated to the mean score (`ROUND(AVG(review_score), 2)`) before joining to fact tables.
+6. **Payments Deduplication:** Split payments (e.g., voucher + credit card installments) are rolled up to `total_payment_value` at the order grain before joining.
 
 ---
 
@@ -51,3 +53,4 @@ To prevent fan-out multiplication of commercial totals:
    - Delivered on or before EDD: $\text{Delay Days} \le 0$ (On-Time / Early).
    - Delivered after EDD: $\text{Delay Days} > 0$ (Late).
 3. **Active Operating Window:** The platform began initial pilot transactions in late 2016 and ceased recording in October 2018. The active, statistically valid operating window used for monthly trends is **January 2017 through August 2018 (20 consecutive months)**.
+

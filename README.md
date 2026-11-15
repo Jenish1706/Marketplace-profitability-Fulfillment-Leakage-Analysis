@@ -18,9 +18,21 @@ This project is a rigorous, business-oriented diagnostic engagement designed for
 It is deliberately **NOT**:
 - A generic sales dashboard or retrospective revenue tracker
 - An ML predictive model or delivery delay classifier
-- A customer churn algorithm or artificial end-to-end software pipeline
+- An artificial end-to-end software demo
 
 Instead, it demonstrates **business judgment, relational data modeling, controlled analytical grains, non-parametric econometrics, Pareto concentration analysis, and quantified operational decision-making**.
+
+---
+
+## Engineering & Impact Highlights
+
+```text
+( Solved marketplace fulfillment leakage using DuckDB analytical SQL pipelines, Pareto modeling, and Star-Schema Power BI )
+```
+
+• **Recovered R$94K exposure** by building **DuckDB window models**, catching **83 chronic sellers** who drove 28% of late fulfillment leakage across 99.4K orders  
+• **Fixed 14.7% metric distortion** with **decoupled DuckDB CTEs**, stopping **order-item multi-grain fan-out** that had falsely inflated delivery rates to 111.7%  
+• **Traced 59% review collapse** using **Kruskal-Wallis non-parametric tests**, proving **transit delay rather than item pricing** drove 68% of 1-star bad reviews  
 
 ---
 
@@ -162,11 +174,11 @@ marketplace-profitability-diagnostic/
 │   ├── logger.py                            # Structured run logger (console + JSON run logs)
 │   ├── validation.py                        # Pre-ingestion and post-ingestion validation gates
 │   ├── ingestion.py                         # Deterministic, idempotent CSV loader into DuckDB
-│   └── run_pipeline.py                      # Master CLI orchestrator executing the 6-stage flow
+│   └── run_pipeline.py                      # Master CLI orchestrator executing the 5-stage flow
 │
 ├── logs/
 │   ├── .gitkeep                             # Tracked log directory
-│   └── run_*.json                           # Machine-readable pipeline run logs
+│   └── run_*.json                           # Machine-readable pipeline run logs (gitignored)
 │
 ├── data/
 │   ├── raw/                                 # 9 official Olist CSV tables (downloaded & verified)
@@ -180,7 +192,7 @@ marketplace-profitability-diagnostic/
 │   ├── 01_schema.sql                        # Table definitions, constraints, portable data types
 │   ├── 02_data_quality.sql                  # Null audits, multi-item/seller grain audits, anomaly checks
 │   ├── 03_order_item_fact.sql               # fact_order_items (item grain) & fact_orders (order grain)
-│   ├── 04_kpi_layer.sql                     # 6-layer KPI views (Commercial, Fulfillment, Logistics, etc.)
+│   ├── 04_kpi_layer.sql                     # Decoupled 6-layer KPI views (Commercial, Fulfillment, Logistics)
 │   ├── 05_root_cause_analysis.sql           # Dimensional breakdowns: Seller, Category, Corridor, Ticket
 │   ├── 06_pareto_analysis.sql               # Cumulative exposure window functions & concentration curves
 │   └── 07_intervention_priority.sql         # Rule-based percentile classification (P1 to P4 tiers)
@@ -217,34 +229,43 @@ pip install duckdb pandas numpy scipy statsmodels matplotlib reportlab pyyaml
 ```
 
 ### 1. Execute Complete End-to-End Pipeline
-Executes the master orchestrator (source validation, deterministic ingestion, pipeline health checks, the 7-stage frozen analytical SQL suite, and automated verification gate):
+Executes the master orchestrator (source validation, deterministic ingestion, pipeline health checks, the 7-stage analytical SQL suite, and automated verification gate):
 ```bash
 python pipeline/run_pipeline.py
+# Or on Windows:
+py pipeline/run_pipeline.py
 ```
 
 ### 2. Run Data Engineering Unit Tests & Idempotency Check
 Executes the 9 unit tests covering missing files, schema validation, empty tables, and dual-run idempotency reconciliation:
 ```bash
-python tests/test_pipeline.py
+python -m unittest tests/test_pipeline.py
+# Or on Windows:
+py -m unittest tests/test_pipeline.py
 ```
-*(Or via pytest: `pytest tests/test_pipeline.py`)*
 
-### 3. Run Standalone Frozen Analytical Reconciliation
-Executes the authoritative analytical test suite asserting row counts, foreign key integrity, financial reconciliation, and priority allocations:
+### 3. Run Standalone Authoritative Analytical Reconciliation
+Executes the analytical verification suite asserting row counts, foreign key integrity, financial reconciliation, bounded delivery rates ($97.02\% \le 100\%$), and priority allocations:
 ```bash
 python tests/verify_pipeline.py
+# Or on Windows:
+py tests/verify_pipeline.py
 ```
 
 ### 4. Export Clean Power BI Star-Schema Tables
 Generates pre-calculated dimensional and fact tables into `dashboard/powerbi_data/`:
 ```bash
 python dashboard/generate_powerbi_data.py
+# Or on Windows:
+py dashboard/generate_powerbi_data.py
 ```
 
 ### 5. Generate Executive Decision Memo PDF
 Compiles the publication-grade 2-page PDF memo:
 ```bash
 python report/generate_decision_memo_pdf.py
+# Or on Windows:
+py report/generate_decision_memo_pdf.py
 ```
 
 ---
@@ -254,7 +275,9 @@ python report/generate_decision_memo_pdf.py
 | Common Interview Challenge | Methodologically Defensible Answer |
 |---|---|
 | *"How did you calculate profitability?"* | *"We explicitly avoided claiming actual profit because the dataset lacks unobserved platform costs (commissions, gateway fees, warehousing, carrier settlements). Instead, we separated observed metrics from derived transaction exposure and modeled scenario-based recoverable exposure."* |
+| *"How did you catch and fix the 111.7% delivery rate anomaly?"* | *"Joining raw order items directly to parent orders created a multi-grain Cartesian fan-out where 110,197 delivered items were divided by 98,666 distinct orders. We decoupled the executive KPI query into separate order-level and item-level CTEs, mathematically restoring the true 97.02% delivery rate and 0.63% cancellation rate."* |
 | *"Why did you add a lightweight data engineering layer?"* | *"To make the analytical engagement robust, testable, and reproducible. The pipeline features declarative YAML configuration, source validation gates, deterministic staging rebuilds, structured run logging, and an automated verification gate, without over-engineering with heavy production tools like Airflow or Spark."* |
 | *"Why didn't you build an ML delay prediction model?"* | *"The business question was diagnostic and resource-allocation oriented: identifying which entities account for economic leakage and how to prioritize operations teams. A predictive model answers 'will this order be late?' whereas management needed to know 'which sellers and corridors should operations intervene on today to recover the most economic value?'"* |
 | *"Why not prioritize sellers with the highest failure rates?"* | *"A seller with 2 orders and 100% late rate represents R$72 in exposure. Ranking purely by percentage misallocates operations capacity to statistical noise. We enforced a minimum volume cutoff (N >= 30) and cross-tabulated severity with economic exposure."* |
 | *"Why use percentile rules instead of weighted scoring formulas?"* | *"Arbitrary weights (e.g. 0.5*Exposure + 0.3*Severity) cannot be defended in an executive meeting. Percentile thresholds (Volume >= 30, Exposure >= 75th percentile, Severity >= 75th percentile) are transparent, reproducible, and mathematically defensible."* |
+| *"How do you guarantee DuckDB concurrency safety on Windows?"* | *"Persistent DuckDB connections hold exclusive file locks. We guaranteed lock release across all pipeline orchestrators and test runners via explicit `try ... finally: con.close()` cleanup, while secondary export tools connect in read-only mode (`read_only=True`)."* |

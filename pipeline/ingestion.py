@@ -1,4 +1,4 @@
-﻿# pipeline/ingestion.py
+# pipeline/ingestion.py
 # Deterministic & Idempotent Ingestion Layer for Marketplace Diagnostic Pipeline
 
 import os
@@ -13,6 +13,9 @@ def ingest_raw_sources(con, config, logger=None):
     Uses CREATE OR REPLACE TABLE to guarantee clean rebuilds without record duplication.
     """
     raw_dir = config["data_source"]["raw_directory"]
+    if not os.path.isabs(raw_dir):
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        raw_dir = os.path.join(project_root, raw_dir)
     sources = config["sources"]
     ingestion_results = {}
 

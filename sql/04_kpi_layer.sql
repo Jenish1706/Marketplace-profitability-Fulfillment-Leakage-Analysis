@@ -94,36 +94,49 @@ ORDER BY o.year_month;
 
 -- ----------------------------------------------------------------------------
 -- 2. EXECUTIVE LIFETIME KPI SUMMARY CARDS
+-- Strictly decouples order grain (fact_orders: 99,441 rows) from line-item grain
+-- (fact_order_items: 112,650 rows) via CTE cross-join to eliminate fan-out distortion.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW view_executive_kpi_summary AS
+WITH order_stats AS (
+    SELECT 
+        COUNT(order_id) AS total_orders,
+        ROUND(100.0 * SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) / COUNT(order_id), 2) AS delivered_rate_pct,
+        ROUND(100.0 * SUM(CASE WHEN order_status = 'delivered' AND is_late = 1 THEN 1 ELSE 0 END) / 
+              NULLIF(SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END), 0), 2) AS overall_late_rate_pct,
+        ROUND(100.0 * SUM(CASE WHEN order_status = 'canceled' THEN 1 ELSE 0 END) / COUNT(order_id), 2) AS cancellation_rate_pct,
+        ROUND(AVG(avg_review_score), 2) AS overall_avg_review_score,
+        ROUND(100.0 * SUM(CASE WHEN is_low_review = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(avg_review_score), 0), 2) AS low_review_rate_pct
+    FROM fact_orders
+),
+item_stats AS (
+    SELECT 
+        COUNT(order_item_id) AS total_items_sold,
+        ROUND(SUM(item_price), 2) AS total_gmv,
+        ROUND(SUM(freight_value), 2) AS total_freight,
+        ROUND(100.0 * SUM(freight_value) / NULLIF(SUM(item_price), 0), 2) AS overall_freight_burden_pct,
+        ROUND(SUM(CASE WHEN is_late = 1 THEN item_price ELSE 0 END), 2) AS total_late_order_gmv_exposure,
+        ROUND(SUM(CASE WHEN is_late = 1 THEN freight_value ELSE 0 END), 2) AS total_late_order_freight_exposure,
+        ROUND(SUM(CASE WHEN is_late = 1 THEN (item_price + freight_value) ELSE 0 END), 2) AS total_late_transaction_exposure,
+        ROUND(SUM(CASE WHEN freight_ratio >= 0.30 THEN item_price ELSE 0 END), 2) AS total_high_freight_gmv_exposure
+    FROM fact_order_items
+)
 SELECT 
-    -- Commercial
-    COUNT(DISTINCT o.order_id) AS total_orders,
-    COUNT(oi.order_item_id) AS total_items_sold,
-    ROUND(SUM(oi.item_price), 2) AS total_gmv,
-    ROUND(SUM(oi.freight_value), 2) AS total_freight,
-    ROUND(SUM(oi.item_price) / COUNT(DISTINCT o.order_id), 2) AS platform_aov,
-    
-    -- Fulfillment
-    ROUND(100.0 * SUM(CASE WHEN o.order_status = 'delivered' THEN 1 ELSE 0 END) / COUNT(DISTINCT o.order_id), 2) AS delivered_rate_pct,
-    ROUND(100.0 * SUM(CASE WHEN o.order_status = 'delivered' AND o.is_late = 1 THEN 1 ELSE 0 END) / 
-          NULLIF(SUM(CASE WHEN o.order_status = 'delivered' THEN 1 ELSE 0 END), 0), 2) AS overall_late_rate_pct,
-    ROUND(100.0 * SUM(CASE WHEN o.order_status = 'canceled' THEN 1 ELSE 0 END) / COUNT(DISTINCT o.order_id), 2) AS cancellation_rate_pct,
-    
-    -- Logistics Economics
-    ROUND(100.0 * SUM(oi.freight_value) / SUM(oi.item_price), 2) AS overall_freight_burden_pct,
-    ROUND(SUM(oi.freight_value) / COUNT(DISTINCT o.order_id), 2) AS avg_freight_per_order,
-    
-    -- Customer Experience
-    ROUND(AVG(o.avg_review_score), 2) AS overall_avg_review_score,
-    ROUND(100.0 * SUM(CASE WHEN o.is_low_review = 1 THEN 1 ELSE 0 END) / COUNT(DISTINCT o.order_id), 2) AS low_review_rate_pct,
-    
-    -- Level 1 Transaction Exposure
-    ROUND(SUM(CASE WHEN oi.is_late = 1 THEN oi.item_price ELSE 0 END), 2) AS total_late_order_gmv_exposure,
-    ROUND(SUM(CASE WHEN oi.is_late = 1 THEN oi.freight_value ELSE 0 END), 2) AS total_late_order_freight_exposure,
-    ROUND(SUM(CASE WHEN oi.is_late = 1 THEN (oi.item_price + oi.freight_value) ELSE 0 END), 2) AS total_late_transaction_exposure,
-    
-    -- Level 2 Cost Burden Exposure
-    ROUND(SUM(CASE WHEN oi.freight_ratio >= 0.30 THEN oi.item_price ELSE 0 END), 2) AS total_high_freight_gmv_exposure
-FROM fact_orders o
-JOIN fact_order_items oi ON o.order_id = oi.order_id;
+    o.total_orders,
+    i.total_items_sold,
+    i.total_gmv,
+    i.total_freight,
+    ROUND(i.total_gmv / NULLIF(o.total_orders, 0), 2) AS platform_aov,
+    o.delivered_rate_pct,
+    o.overall_late_rate_pct,
+    o.cancellation_rate_pct,
+    i.overall_freight_burden_pct,
+    ROUND(i.total_freight / NULLIF(o.total_orders, 0), 2) AS avg_freight_per_order,
+    o.overall_avg_review_score,
+    o.low_review_rate_pct,
+    i.total_late_order_gmv_exposure,
+    i.total_late_order_freight_exposure,
+    i.total_late_transaction_exposure,
+    i.total_high_freight_gmv_exposure
+FROM order_stats o
+CROSS JOIN item_stats i;

@@ -1,5 +1,18 @@
-﻿# pipeline/run_pipeline.py
-# Master Orchestrator for Marketplace Profitability Diagnostic Data Pipeline
+# pipeline/run_pipeline.py
+"""
+Master Orchestrator for Marketplace Profitability & Fulfillment Leakage Diagnostic Data Pipeline.
+
+Execution Flow:
+    1. Configuration Loading & Validation (pipeline/config.yaml)
+    2. Structured Run Logging Initialization (logs/run_<timestamp>.json)
+    3. Stage 1: Source File Validation Gate (Pre-Ingestion)
+    4. Stage 2: Deterministic Staging Ingestion (Raw CSV -> DuckDB Staging)
+    5. Stage 3: Pipeline Staging Health Validation Gate (Post-Ingestion)
+    6. Stage 4: Sequential Execution of Analytical SQL Suite (01 to 07)
+    7. Stage 5: Analytical Reconciliation Snapshot Extraction
+    8. Stage 6: Isolated Verification Gate (Subprocess tests/verify_pipeline.py)
+    9. Run Log Finalization & Resource Cleanup (try ... finally)
+"""
 
 import os
 import sys
@@ -17,7 +30,20 @@ from pipeline.logger import PipelineLogger
 from pipeline.validation import validate_sources_exist, validate_staging_health, PipelineValidationError
 from pipeline.ingestion import ingest_raw_sources, IngestionError
 
-def load_config(config_path="pipeline/config.yaml"):
+def load_config(config_path="pipeline/config.yaml") -> dict:
+    """
+    Loads and parses the centralized declarative YAML configuration file.
+
+    Parameters:
+        config_path (str): Relative or absolute path to config.yaml.
+
+    Returns:
+        dict: Parsed configuration dictionary containing database, source,
+              validation, and orchestration parameters.
+
+    Raises:
+        FileNotFoundError: If the specified configuration file does not exist.
+    """
     if not os.path.isabs(config_path):
         config_path = os.path.join(project_root, config_path)
     if not os.path.isfile(config_path):
@@ -26,6 +52,17 @@ def load_config(config_path="pipeline/config.yaml"):
         return yaml.safe_load(f)
 
 def run_pipeline(config_path="pipeline/config.yaml", logger=None, return_snapshot=False):
+    """
+    Executes the complete end-to-end data pipeline from raw source files to analytical reconciliation.
+
+    Parameters:
+        config_path (str): Path to declarative YAML configuration.
+        logger (PipelineLogger, optional): Pre-instantiated structured logger.
+        return_snapshot (bool): If True, returns (success: bool, snapshot: dict).
+
+    Returns:
+        bool or tuple: Success status flag, or (success, snapshot) if return_snapshot=True.
+    """
     config = load_config(config_path)
     log_dir = os.path.join(project_root, config.get("orchestration", {}).get("logging_directory", "logs"))
     
@@ -136,6 +173,10 @@ def run_pipeline(config_path="pipeline/config.yaml", logger=None, return_snapsho
         if return_snapshot:
             return False, {}
         return False
+    finally:
+        # Guarantee that DuckDB database connection is always closed cleanly,
+        # releasing file locks on Windows and flushing write-ahead logs (WAL).
+        con.close()
 
 if __name__ == "__main__":
     success = run_pipeline()

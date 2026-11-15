@@ -1,4 +1,4 @@
-﻿# pipeline/validation.py
+# pipeline/validation.py
 # Pipeline & Ingestion Health Validation Gate for Marketplace Diagnostic Pipeline
 
 import os
@@ -11,6 +11,9 @@ def validate_sources_exist(config, logger=None):
     Pre-ingestion Gate: Verifies that all expected raw CSV files exist and are non-empty.
     """
     raw_dir = config["data_source"]["raw_directory"]
+    if not os.path.isabs(raw_dir):
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        raw_dir = os.path.join(project_root, raw_dir)
     sources = config["sources"]
     all_passed = True
 
@@ -119,8 +122,8 @@ def validate_staging_health(con, config, logger=None):
         try:
             sample_dates = con.execute(f"SELECT {col} FROM {tbl} WHERE {col} IS NOT NULL LIMIT 5").fetchall()
             for (dt_val,) in sample_dates:
-                # DuckDB native cast check
-                con.execute(f"SELECT CAST('{dt_val}' AS TIMESTAMP)").fetchone()
+                # DuckDB native cast check via parameterized query
+                con.execute("SELECT CAST(? AS TIMESTAMP)", [str(dt_val)])
             if logger:
                 logger.log_validation(check_date, "PASS", "Sample timestamps parsed successfully")
         except Exception as e:
