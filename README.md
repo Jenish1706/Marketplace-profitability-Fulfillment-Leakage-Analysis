@@ -114,33 +114,33 @@ LEVEL 3 — Operational Risk Mitigation Scenarios (Scenario-Based)
 ## 4. Key Diagnostic Discoveries
 
 ### 1. Macro Inflection: Growth vs Fulfillment Breakdown
-- **Holiday Throughput Shock (Nov 2017):** Orders surged +63% MoM (7,544 orders), overwhelming carrier dispatch and driving late delivery rates to **14.31%**.
-- **Severe Q1 2018 Fulfillment Collapse:** Rather than recovering post-holiday, late delivery rates spiked to **15.99% in Feb** and peaked at **21.36% in March 2018** (over 1 in 5 orders delivered late), with average delays of **+8.87 days** for late shipments.
+- **Holiday Throughput Shock (Nov 2017):** Orders surged +63% MoM (7,544 orders), overwhelming carrier dispatch and driving late delivery rates to **12.40%**.
+- **Severe Q1 2018 Fulfillment Collapse:** Rather than recovering post-holiday, late delivery rates spiked to **14.13% in Feb** and peaked at **18.96% in March 2018** (nearly 1 in 5 orders delivered late), with average delays of **+8.87 days** for late shipments.
 - **Freight Inflation:** Platform freight burden rose steadily from 14.03% in Jan 2017 to over **18.23% by mid-2018**.
 
 ### 2. Pareto Concentration & Commercial Baseline
 Cumulative exposure window functions reveal concentration, though strongly coupled to commercial scale:
-- **Decile 1 (Top 310 sellers, 10% of seller base):** Generates **61.27% of total GMV (R$ 8.33M)** and accounts for **75.83% (R$ 1,024,909.34)** of late transaction exposure (concentration lift of **1.24×**).
-- **Top 20% of sellers:** Account for **90.47%** of cumulative late exposure.
+- **Decile 1 (Top 310 sellers, 10% of seller base):** Generates **60.78% of total GMV (R$ 8.26M)** and accounts for **77.38% (R$ 890,580.39)** of late transaction exposure (concentration lift of **1.27×**).
+- **Top 20% of sellers:** Account for **91.73%** of cumulative late exposure.
 - **Bottom 50% of sellers:** Zero late items delivered.
 
 ### 3. Volume × Severity Decoupling
 Standard failure-rate rankings flag low-volume noise (e.g., sellers with 2 orders and 100% late rate, representing R$ 72 exposure). Real business liability is concentrated in high-volume partners. For example, seller `4a3ca93a...` had a 16.0% late rate across 1,806 orders, generating **R$ 29,420.57 in late exposure** alone.
 
 ### 4. Product Category Structural Deficits
-Heavy and voluminous categories (`furniture_decor`, `office_furniture`, `bed_bath_table`) carry physical volumes exceeding 25,000 cm³ and unit weights >3 kg, driving structural freight burdens of **25% to 35%**, severely eroding contribution margins.
+Heavy and voluminous categories (`furniture_decor`, `office_furniture`, `bed_bath_table`) carry physical volumes exceeding 25,000 cm³ and unit weights >3 kg, driving structural freight burdens of **20% to 25%**, severely eroding contribution margins.
 
 ### 5. Cross-Regional Corridor Friction
-Intra-state São Paulo deliveries (SP $\to$ SP) operate efficiently (5.5% late rate, 12% freight burden). In contrast, long-haul inter-state corridors (SP $\to$ RJ, SP $\to$ BA, SP $\to$ MG) suffer acute bottlenecks: **SP $\to$ RJ alone accounts for R$ 138K in late exposure** with an 11.2% late delivery rate.
+Intra-state São Paulo deliveries (SP $\to$ SP) operate efficiently (6.10% late rate, 13.21% freight burden). In contrast, long-haul inter-state corridors (SP $\to$ RJ, SP $\to$ BA, SP $\to$ MG) suffer acute bottlenecks: **SP $\to$ RJ alone accounts for R$ 197K in late exposure** with a 14.85% late delivery rate.
 
 ### 6. Statistical Confirmation: Delivery Delay & Customer Sentiment
-- **On-Time Baseline:** Average Review Score = **4.29 / 5.00** (6.6% low reviews $\le 2$ stars).
-- **1–2 Days Late:** Drops to **3.77** (13.7% low reviews).
-- **3–5 Days Late:** Collapses to **2.47** (48.4% low reviews).
-- **>5 Days Late:** Plummets to **1.74** (68.6% low reviews $\le 2$ stars).
-- **Review Timing Nuance:** Among late orders, 70.2% of reviews were submitted *before* the order was delivered (reflecting prompt arrival survey response upon promised date breach, rather than post-delivery satisfaction).
-- **Non-Parametric Tests:** Kruskal-Wallis $H = 10,316.60$ ($p < 10^{-15}$); Mann-Whitney $U$ rank-biserial effect size $r = -0.76$ for $>5$ days late.
-- **Multivariate Logistic Regression:** Delivery delay is strongly conditionally associated with poor reviews ($\text{OR} = 1.064 \text{ per delay day}, p < 0.001$, coef = 0.0617), controlling for price, freight ratio, and interstate routing.
+- **On-Time Baseline:** Average Review Score = **4.29 / 5.00** (9.2% low reviews $\le 2$ stars).
+- **1–2 Days Late:** Drops to **3.51** (25.5% low reviews).
+- **3–5 Days Late:** Collapses to **2.47** (56.7% low reviews).
+- **>5 Days Late:** Plummets to **1.74** (78.1% low reviews $\le 2$ stars).
+- **Review Timing Nuance:** Among late orders, 70.10% of reviews were submitted *before* the order was delivered (reflecting prompt arrival survey response upon promised date breach, rather than post-delivery satisfaction).
+- **Non-Parametric Tests:** Kruskal-Wallis $H = 10,167.48$ ($p < 10^{-15}$); Mann-Whitney $U$ rank-biserial effect size $r = -0.781$ for $>5$ days late.
+- **Multivariate Logistic Regression:** Delivery delay is strongly conditionally associated with poor reviews ($\text{OR} = 1.229 \text{ per late day}, p < 0.001$, $\text{coef} = 0.2060$), evaluated with non-negative delay (`delay_days_late = max(0, delivery_delay_days)`) and cluster-robust standard errors (clustered by seller state), controlling for log price, freight ratio, and interstate routing.
 
 ---
 

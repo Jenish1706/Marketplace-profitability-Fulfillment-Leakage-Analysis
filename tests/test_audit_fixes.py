@@ -98,12 +98,53 @@ class TestAuditFixes(unittest.TestCase):
         self.assertEqual(seller_late + carrier_late, total_late, "Seller + carrier late items must equal total late items")
         self.assertGreater(carrier_late, seller_late, "Carrier transit delay accounts for majority (~71%) of late items")
 
+    def test_p03_reviews_answered_before_delivery(self):
+        """P0-3 Fix Test: Verify review submission timing relative to package delivery."""
+        q = """
+        SELECT 
+            is_late,
+            ROUND(AVG(CASE WHEN r.review_answer_timestamp < o.order_delivered_customer_date THEN 1.0 ELSE 0.0 END) * 100, 2) AS pct_reviewed_before_delivery
+        FROM fact_orders o
+        JOIN (
+            SELECT order_id, MAX(review_answer_timestamp) AS review_answer_timestamp
+            FROM olist_order_reviews
+            GROUP BY order_id
+        ) r ON o.order_id = r.order_id
+        WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
+        GROUP BY is_late
+        ORDER BY is_late;
+        """
+        rows = dict(self.con.execute(q).fetchall())
+        self.assertAlmostEqual(rows[1], 70.10, delta=0.5, msg="~70% of late orders reviewed before delivery")
+        self.assertLess(rows[0], 1.0, msg="<1% of on-time orders reviewed before delivery")
+
     def test_p04_exposure_and_scenarios(self):
         """P0-4 Fix Test: Metric is named late-order exposure and scenarios, no 'recoverable' claims."""
         cols = [col[0] for col in self.con.execute("DESCRIBE view_intervention_tier_summary").fetchall()]
         for col in cols:
             self.assertNotIn("recoverable", col.lower(), f"Column {col} must not claim 'recoverable'")
         self.assertIn("scenario_mitigation_base_25pct", cols)
+
+    def test_p15_econometric_discrepancies(self):
+        """P1-5 Fix Test: Verify notebook statistical outputs match markdown quotes without discrepancy."""
+        import json
+        nb_path = os.path.join(project_root, "notebooks", "business_analysis.ipynb")
+        with open(nb_path, "r", encoding="utf-8") as f:
+            nb = json.load(f)
+        
+        # Check Kruskal-Wallis markdown vs code output
+        found_kw_md = False
+        found_kw_out = False
+        for cell in nb["cells"]:
+            text = "".join(cell.get("source", []))
+            if "Kruskal-Wallis" in text and "10,167.48" in text:
+                found_kw_md = True
+            for out in cell.get("outputs", []):
+                out_text = "".join(out.get("text", []))
+                if "H = 10167.48" in out_text:
+                    found_kw_out = True
+        self.assertTrue(found_kw_md, "Notebook markdown must state H = 10,167.48")
+        self.assertTrue(found_kw_out, "Notebook code output must report H = 10167.48")
 
     def test_p16_pareto_concentration_lift(self):
         """P1-6 Fix Test: Pareto view provides commercial baseline and concentration lift."""
@@ -112,6 +153,70 @@ class TestAuditFixes(unittest.TestCase):
         self.assertAlmostEqual(gmv_share, 60.78, places=1)
         self.assertAlmostEqual(exp_share, 77.38, places=1)
         self.assertAlmostEqual(lift, 1.27, places=1)
+
+    def test_p17_temporal_chronic_split(self):
+        """P1-7 Fix Test: Verify out-of-sample persistence of 2017 P1 sellers into 2018."""
+        q = """
+        WITH base_orders AS (
+            SELECT 
+                o.order_id,
+                oi.seller_id,
+                oi.item_price AS price,
+                oi.freight_value,
+                CAST(strftime(o.order_purchase_timestamp, '%Y') AS INT) AS order_year,
+                o.is_late
+            FROM fact_orders o
+            JOIN fact_order_items oi ON o.order_id = oi.order_id
+            WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
+        ),
+        seller_2017 AS (
+            SELECT 
+                seller_id,
+                COUNT(DISTINCT order_id) AS orders_2017,
+                SUM(price) AS gmv_2017,
+                ROUND(100.0 * AVG(is_late), 2) AS late_rate_2017,
+                SUM(CASE WHEN is_late = 1 THEN price + freight_value ELSE 0 END) AS late_exp_2017
+            FROM base_orders
+            WHERE order_year = 2017
+            GROUP BY seller_id
+        ),
+        benchmarks_2017 AS (
+            SELECT 
+                PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_exp_2017) AS exp_p75,
+                PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_rate_2017) AS late_p75
+            FROM seller_2017
+            WHERE orders_2017 >= 20
+        ),
+        classified_2017 AS (
+            SELECT 
+                s.*,
+                CASE 
+                    WHEN s.orders_2017 >= 20 AND s.late_exp_2017 >= b.exp_p75 AND s.late_rate_2017 >= b.late_p75 THEN 'P1_2017'
+                    ELSE 'Other_2017'
+                END AS tier_2017
+            FROM seller_2017 s
+            CROSS JOIN benchmarks_2017 b
+        ),
+        seller_2018 AS (
+            SELECT 
+                seller_id,
+                COUNT(DISTINCT order_id) AS orders_2018,
+                ROUND(100.0 * AVG(is_late), 2) AS late_rate_2018
+            FROM base_orders
+            WHERE order_year = 2018
+            GROUP BY seller_id
+        )
+        SELECT 
+            c.tier_2017,
+            ROUND(AVG(s18.late_rate_2018), 2) AS avg_late_rate_2018
+        FROM classified_2017 c
+        JOIN seller_2018 s18 ON c.seller_id = s18.seller_id
+        GROUP BY c.tier_2017;
+        """
+        rates = dict(self.con.execute(q).fetchall())
+        self.assertAlmostEqual(rates['P1_2017'], 13.05, delta=0.5, msg="2017 P1 sellers should maintain ~13% late rate in 2018")
+        self.assertAlmostEqual(rates['Other_2017'], 8.60, delta=0.5, msg="Other sellers should maintain ~8.6% late rate in 2018")
+        self.assertGreater(rates['P1_2017'], rates['Other_2017'], "P1 sellers must show persistent higher lateness out-of-sample")
 
     def test_p18_tier_naming_and_documentation(self):
         """P1-8 Fix Test: P4 tier is properly designated as Low Volume / Standard Governance."""
