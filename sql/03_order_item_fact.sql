@@ -92,22 +92,45 @@ SELECT
     
     CASE 
         WHEN o.order_status = 'delivered' 
-         AND CAST(o.order_delivered_customer_date AS TIMESTAMP) > CAST(o.order_estimated_delivery_date AS TIMESTAMP) 
+         AND CAST(o.order_delivered_customer_date AS DATE) > CAST(o.order_estimated_delivery_date AS DATE) 
         THEN 1 
         ELSE 0 
     END AS is_late,
     
+    -- P0-2 Decomposition: Seller Dispatch Delay vs Carrier Transit Delay
+    CASE 
+        WHEN o.order_delivered_carrier_date IS NOT NULL AND o.order_delivered_carrier_date > oi.shipping_limit_date 
+        THEN 1 
+        ELSE 0 
+    END AS is_seller_late_dispatch,
+    
+    CASE 
+        WHEN o.order_status = 'delivered' 
+         AND CAST(o.order_delivered_customer_date AS DATE) > CAST(o.order_estimated_delivery_date AS DATE)
+         AND o.order_delivered_carrier_date > oi.shipping_limit_date 
+        THEN 1 
+        ELSE 0 
+    END AS is_seller_caused_late,
+    
+    CASE 
+        WHEN o.order_status = 'delivered' 
+         AND CAST(o.order_delivered_customer_date AS DATE) > CAST(o.order_estimated_delivery_date AS DATE)
+         AND (o.order_delivered_carrier_date IS NULL OR o.order_delivered_carrier_date <= oi.shipping_limit_date) 
+        THEN 1 
+        ELSE 0 
+    END AS is_carrier_caused_late,
+    
     CASE 
         WHEN o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL 
-        THEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP))
+        THEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS DATE), CAST(o.order_delivered_customer_date AS DATE))
         ELSE NULL
     END AS delivery_delay_days,
     
     CASE 
         WHEN o.order_status <> 'delivered' OR o.order_delivered_customer_date IS NULL THEN 'Undelivered / In-Transit'
-        WHEN CAST(o.order_delivered_customer_date AS TIMESTAMP) <= CAST(o.order_estimated_delivery_date AS TIMESTAMP) THEN '1. On-Time / Early'
-        WHEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= 2 THEN '2. 1-2 Days Late'
-        WHEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= 5 THEN '3. 3-5 Days Late'
+        WHEN CAST(o.order_delivered_customer_date AS DATE) <= CAST(o.order_estimated_delivery_date AS DATE) THEN '1. On-Time / Early'
+        WHEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS DATE), CAST(o.order_delivered_customer_date AS DATE)) <= 2 THEN '2. 1-2 Days Late'
+        WHEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS DATE), CAST(o.order_delivered_customer_date AS DATE)) <= 5 THEN '3. 3-5 Days Late'
         ELSE '4. >5 Days Late'
     END AS delay_bucket,
     
@@ -149,6 +172,7 @@ WITH order_item_aggregates AS (
         COUNT(order_item_id) AS total_items,
         COUNT(DISTINCT seller_id) AS distinct_sellers,
         COUNT(DISTINCT product_id) AS distinct_products,
+        MAX(shipping_limit_date) AS max_shipping_limit_date,
         ROUND(SUM(price), 2) AS gmv,
         ROUND(SUM(freight_value), 2) AS total_freight,
         ROUND(SUM(freight_value) / NULLIF(SUM(price), 0), 4) AS order_freight_burden
@@ -189,14 +213,37 @@ SELECT
     
     CASE 
         WHEN o.order_status = 'delivered' 
-         AND CAST(o.order_delivered_customer_date AS TIMESTAMP) > CAST(o.order_estimated_delivery_date AS TIMESTAMP) 
+         AND CAST(o.order_delivered_customer_date AS DATE) > CAST(o.order_estimated_delivery_date AS DATE) 
         THEN 1 
         ELSE 0 
     END AS is_late,
     
+    -- P0-2 Decomposition: Seller Dispatch Delay vs Carrier Transit Delay
+    CASE 
+        WHEN o.order_delivered_carrier_date IS NOT NULL AND o.order_delivered_carrier_date > oia.max_shipping_limit_date 
+        THEN 1 
+        ELSE 0 
+    END AS is_seller_late_dispatch,
+    
+    CASE 
+        WHEN o.order_status = 'delivered' 
+         AND CAST(o.order_delivered_customer_date AS DATE) > CAST(o.order_estimated_delivery_date AS DATE)
+         AND o.order_delivered_carrier_date > oia.max_shipping_limit_date 
+        THEN 1 
+        ELSE 0 
+    END AS is_seller_caused_late,
+    
+    CASE 
+        WHEN o.order_status = 'delivered' 
+         AND CAST(o.order_delivered_customer_date AS DATE) > CAST(o.order_estimated_delivery_date AS DATE)
+         AND (o.order_delivered_carrier_date IS NULL OR o.order_delivered_carrier_date <= oia.max_shipping_limit_date) 
+        THEN 1 
+        ELSE 0 
+    END AS is_carrier_caused_late,
+    
     CASE 
         WHEN o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL 
-        THEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP))
+        THEN DATE_DIFF('day', CAST(o.order_estimated_delivery_date AS DATE), CAST(o.order_delivered_customer_date AS DATE))
         ELSE NULL
     END AS delivery_delay_days,
     

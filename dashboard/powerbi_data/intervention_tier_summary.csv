@@ -1,5 +1,5 @@
-priority_tier,seller_count,pct_of_seller_base,total_orders,total_gmv,total_late_items,total_late_transaction_exposure,pct_of_platform_late_exposure,recoverable_conservative_10pct,recoverable_base_25pct,recoverable_optimistic_40pct
-P1 - Immediate Intervention,83,2.68,19046,2349311.83,2546,377768.41,27.95,37776.84,94442.1,151107.36
-P2 - Operational Investigation,272,8.79,43025,5298908.12,3652,504623.53,37.33,50462.35,126155.88,201849.41
-P3 - Operational Monitoring,149,4.81,10962,1552203.48,881,153332.79,11.34,15333.28,38333.2,61333.12
-P4 - Standard Governance,2591,83.72,26977,4391220.27,1635,315900.23,23.37,31590.02,78975.06,126360.09
+priority_tier,seller_count,pct_of_seller_base,total_orders,total_gmv,total_seller_late_items,total_seller_late_exposure,pct_of_platform_seller_exposure,total_late_items,total_late_transaction_exposure,scenario_mitigation_conservative_10pct,scenario_mitigation_base_25pct,scenario_mitigation_optimistic_40pct
+P1 - Immediate Intervention,113,3.65,20576,2787321.99,1130,181377.55,48.85,2186,329350.59,18137.76,45344.39,72551.02
+P2 - Operational Investigation,211,6.82,33823,3722863.54,425,54637.04,14.72,2359,306280.08,5463.7,13659.26,21854.82
+P3 - Operational Monitoring,323,10.44,29095,3984134.35,153,39267.34,10.58,1578,264165.02,3926.73,9816.83,15706.94
+P4 - Low Volume / Standard Governance,2448,79.1,16516,3097323.82,400,95999.21,25.86,1141,251096.44,9599.92,23999.8,38399.68

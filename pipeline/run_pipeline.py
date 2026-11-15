@@ -132,8 +132,8 @@ def run_pipeline(config_path="pipeline/config.yaml", logger=None, return_snapsho
             "freight": float(con.execute("SELECT sum(freight_value) FROM fact_order_items").fetchone()[0]),
             "freight_burden_pct": round(float(con.execute("SELECT 100.0 * sum(freight_value) / sum(item_price) FROM fact_order_items").fetchone()[0]), 2),
             "p1_seller_count": int(con.execute("SELECT seller_count FROM view_intervention_tier_summary WHERE priority_tier = 'P1 - Immediate Intervention'").fetchone()[0]),
-            "p1_late_exposure": float(con.execute("SELECT total_late_transaction_exposure FROM view_intervention_tier_summary WHERE priority_tier = 'P1 - Immediate Intervention'").fetchone()[0]),
-            "base_recovery_25pct": float(con.execute("SELECT recoverable_base_25pct FROM view_intervention_tier_summary WHERE priority_tier = 'P1 - Immediate Intervention'").fetchone()[0])
+            "p1_seller_late_exposure": float(con.execute("SELECT total_seller_late_exposure FROM view_intervention_tier_summary WHERE priority_tier = 'P1 - Immediate Intervention'").fetchone()[0]),
+            "base_mitigation_25pct": float(con.execute("SELECT scenario_mitigation_base_25pct FROM view_intervention_tier_summary WHERE priority_tier = 'P1 - Immediate Intervention'").fetchone()[0])
         }
         logger.record_snapshot(snapshot)
 

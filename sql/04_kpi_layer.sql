@@ -140,3 +140,20 @@ SELECT
     i.total_high_freight_gmv_exposure
 FROM order_stats o
 CROSS JOIN item_stats i;
+
+-- ----------------------------------------------------------------------------
+-- 3. UNFULFILLED & UNDELIVERED ORDERS FAILURE BREAKDOWN (Open Lead 1)
+-- Quantifies orders that never reached 'delivered' status (2,963 orders / 2.98%).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW view_unfulfilled_orders_breakdown AS
+SELECT 
+    order_status,
+    COUNT(order_id) AS order_count,
+    ROUND(100.0 * COUNT(order_id) / (SELECT COUNT(*) FROM fact_orders), 2) AS pct_of_total_orders,
+    ROUND(SUM(gmv), 2) AS gmv_exposure,
+    ROUND(SUM(total_freight), 2) AS freight_exposure,
+    ROUND(SUM(total_order_value), 2) AS total_unfulfilled_transaction_value
+FROM fact_orders
+WHERE order_status <> 'delivered'
+GROUP BY order_status
+ORDER BY order_count DESC;

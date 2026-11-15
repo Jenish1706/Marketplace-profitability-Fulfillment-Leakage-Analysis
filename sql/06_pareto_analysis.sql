@@ -84,12 +84,18 @@ SELECT
     COUNT(*) AS seller_count,
     ROUND(SUM(total_orders), 0) AS total_orders,
     ROUND(SUM(gmv), 2) AS total_gmv,
+    ROUND(100.0 * SUM(gmv) / SUM(SUM(gmv)) OVER (), 2) AS decile_gmv_share_pct,
+    ROUND(100.0 * SUM(SUM(gmv)) OVER (
+        ORDER BY exposure_decile ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) / SUM(SUM(gmv)) OVER (), 2) AS cumulative_gmv_share_pct,
     ROUND(SUM(total_late_transaction_exposure), 2) AS decile_late_exposure,
     ROUND(100.0 * SUM(total_late_transaction_exposure) / 
           SUM(SUM(total_late_transaction_exposure)) OVER (), 2) AS decile_exposure_share_pct,
     ROUND(100.0 * SUM(SUM(total_late_transaction_exposure)) OVER (
         ORDER BY exposure_decile ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) / SUM(SUM(total_late_transaction_exposure)) OVER (), 2) AS cumulative_exposure_share_pct
+    ) / SUM(SUM(total_late_transaction_exposure)) OVER (), 2) AS cumulative_exposure_share_pct,
+    ROUND((100.0 * SUM(total_late_transaction_exposure) / SUM(SUM(total_late_transaction_exposure)) OVER ()) / 
+          NULLIF(100.0 * SUM(gmv) / SUM(SUM(gmv)) OVER (), 0), 2) AS concentration_lift
 FROM deciled
 GROUP BY exposure_decile
 ORDER BY exposure_decile;

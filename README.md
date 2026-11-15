@@ -42,22 +42,24 @@ A critical flaw in standard marketplace portfolio projects is fabricating unobse
 
 This diagnostic enforces a defensible **Three-Level Economic Architecture**:
 
+<!-- BEGIN_ECONOMIC_FRAMEWORK -->
 ```
 LEVEL 1 — Transaction Exposure (Observable)
-  ├── Late-Order GMV Exposure:       E_late^GMV = R$ 1,158,920.51 (Pending Stage A date-level recalculation)
-  ├── Late-Order Freight Exposure:   E_late^freight = R$ 192,704.45 (Pending Stage A date-level recalculation)
-  └── Total Late Transaction Value:  E_late = R$ 1,351,624.96 (Affected transaction volume)
+  ├── Late-Order GMV Exposure:       E_late^GMV = R$ 985,924.34
+  ├── Late-Order Freight Exposure:   E_late^freight = R$ 164,967.79
+  └── Total Late Transaction Value:  E_late = R$ 1,150,892.13 (Date-level late delivery exposure)
 
 LEVEL 2 — Cost Burden (Observable)
   ├── Platform Freight Burden:       Total Freight / Total GMV = 16.57%
   └── High-Freight Exposure:         R$ 1,855,750.93 GMV where Freight-to-Value >= 30%
 
 LEVEL 3 — Operational Risk Mitigation Scenarios (Scenario-Based)
-  Focuses on Priority 1 (P1) Sellers (R$ 377,768.41 Late Exposure; pending rerun under seller-attributed lateness):
-  ├── Conservative Scenario (10% GMV Mitigation): R$ 37,776.84
-  ├── Base Scenario (25% GMV Mitigation):         R$ 94,442.10
-  └── Optimistic Scenario (40% GMV Mitigation):   R$ 151,107.36
+  Focuses on Priority 1 (P1) Sellers (R$ 181,377.55 Seller-Caused Late Exposure across 113 merchants):
+  ├── Conservative Scenario (10% Operational Mitigation): R$ 18,137.76
+  ├── Base Scenario (25% Operational Mitigation):         R$ 45,344.39
+  └── Optimistic Scenario (40% Operational Mitigation):   R$ 72,551.02
 ```
+<!-- END_ECONOMIC_FRAMEWORK -->
 
 ---
 
@@ -148,20 +150,23 @@ To ensure defensibility, sellers are classified into deterministic tiers using p
 
 $$\text{P1 Tier} = \{s \in \text{Sellers} \mid N_s \ge 30 \land E_s \ge P_{75}(E) \land (\text{LateRate}_s \ge P_{75}(\text{LateRate}) \lor \text{FreightBurden}_s \ge P_{75}(\text{FreightBurden}))\}$$
 
-| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Total Late Exposure (R$) | % Platform Late Exp | Late Exposure Mitigation (Base 25% Scenario) | Recommended Operational Action |
+<!-- BEGIN_TIER_TABLE -->
+| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Late Mitigation (Base 25%) | Recommended Operational Action |
 |---|---|---|---|---|---|---|---|---|
-| **P1 — Immediate Intervention** | **83** | **2.68%** | 19,046 | R$ 2.35M | **R$ 377,768.41** | **27.95%** | **R$ 94,442.10** | Lead-time calibration, packaging audit, carrier handoff inspection |
-| **P2 — Operational Investigation** | 272 | 8.79% | 43,025 | R$ 5.30M | R$ 504,623.53 | 37.33% | R$ 126,155.88 | Carrier dispatch audit, lane-specific carrier re-allocation |
-| **P3 — Operational Monitoring** | 149 | 4.81% | 10,962 | R$ 1.55M | R$ 153,332.79 | 11.34% | R$ 38,333.20 | Automated portal threshold warnings; 30-day monitoring window |
-| **P4 — Low Volume / Standard Governance** | 2,591 | 83.72% | 26,977 | R$ 4.39M | R$ 315,900.23 | 23.37% | R$ 78,975.06 | Routine partner management; low-volume sellers ($N < 30$) and healthy benchmarks |
+| **P1 - Immediate Intervention** | **113** | **3.65%** | 20,576 | R$ 2.79M | **R$ 181,377.55** | **48.85%** | **R$ 45,344.39** | Lead-time calibration, packaging audit, carrier handoff inspection |
+| P2 - Operational Investigation | 211 | 6.82% | 33,823 | R$ 3.72M | R$ 54,637.04 | 14.72% | R$ 13,659.26 | Carrier dispatch inspection, lane-specific carrier re-allocation |
+| P3 - Operational Monitoring | 323 | 10.44% | 29,095 | R$ 3.98M | R$ 39,267.34 | 10.58% | R$ 9,816.83 | Automated portal threshold warnings; 30-day monitoring window |
+| P4 - Low Volume / Standard Governance | 2,448 | 79.10% | 16,516 | R$ 3.10M | R$ 95,999.21 | 25.86% | R$ 23,999.80 | Routine partner management; low-volume sellers ($N < 30$) and healthy benchmarks |
+<!-- END_TIER_TABLE -->
 
 *\*Note: Total orders across tiers sum to 100,010 because multi-seller orders (1,278 orders) represent multiple seller-order fulfillment engagements.*
 
+<!-- BEGIN_SENSITIVITY_CHECK -->
 ### Volume Cutoff Sensitivity Check
-- **$N \ge 20$:** 104 P1 sellers, R$ 415.6K exposure
-- **$N \ge 30$ (Base):** 83 P1 sellers, R$ 377.8K exposure
-- **$N \ge 50$:** 51 P1 sellers, R$ 314.4K exposure
-*(Note: Tier figures shown reflect baseline SQL and are subject to recalculation under date-level lateness and seller handover decoupling.)*
+- **$N \ge 20$:** 150 P1 sellers, R$ 204.5K seller late exposure
+- **$N \ge 30$ (Base):** 113 P1 sellers, R$ 181.4K seller late exposure
+- **$N \ge 50$:** 69 P1 sellers, R$ 145.5K seller late exposure
+<!-- END_SENSITIVITY_CHECK -->
 
 ---
 

@@ -31,6 +31,15 @@ SELECT
     SUM(CASE WHEN oi.is_late = 1 THEN 1 ELSE 0 END) AS late_items,
     ROUND(100.0 * SUM(CASE WHEN oi.is_late = 1 THEN 1 ELSE 0 END) / 
           NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS late_item_rate_pct,
+    
+    -- P0-2 Decomposition: Seller-caused vs Carrier-caused fulfillment delay
+    SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN 1 ELSE 0 END) AS seller_late_items,
+    ROUND(100.0 * SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN 1 ELSE 0 END) / 
+          NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS seller_late_item_rate_pct,
+    SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN 1 ELSE 0 END) AS carrier_late_items,
+    ROUND(100.0 * SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN 1 ELSE 0 END) / 
+          NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS carrier_late_item_rate_pct,
+    
     ROUND(AVG(CASE WHEN oi.is_late = 1 THEN oi.delivery_delay_days END), 2) AS avg_delay_days_late_items,
     
     -- Logistics Economics (Level 2 Cost Burden)
@@ -44,6 +53,8 @@ SELECT
     ROUND(SUM(CASE WHEN oi.is_late = 1 THEN oi.item_price ELSE 0 END), 2) AS late_gmv_exposure,
     ROUND(SUM(CASE WHEN oi.is_late = 1 THEN oi.freight_value ELSE 0 END), 2) AS late_freight_exposure,
     ROUND(SUM(CASE WHEN oi.is_late = 1 THEN (oi.item_price + oi.freight_value) ELSE 0 END), 2) AS total_late_transaction_exposure,
+    ROUND(SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN (oi.item_price + oi.freight_value) ELSE 0 END), 2) AS seller_late_exposure,
+    ROUND(SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN (oi.item_price + oi.freight_value) ELSE 0 END), 2) AS carrier_late_exposure,
     
     -- Level 2: High-Freight Burden Exposure (freight_ratio >= 0.30)
     ROUND(SUM(CASE WHEN oi.freight_ratio >= 0.30 THEN oi.item_price ELSE 0 END), 2) AS high_freight_gmv_exposure,
@@ -123,6 +134,15 @@ SELECT
     SUM(CASE WHEN oi.is_late = 1 THEN 1 ELSE 0 END) AS late_items,
     ROUND(100.0 * SUM(CASE WHEN oi.is_late = 1 THEN 1 ELSE 0 END) / 
           NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS late_delivery_rate_pct,
+    
+    -- P0-2 Decomposition: Carrier vs Seller Breakdown by Corridor
+    SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN 1 ELSE 0 END) AS carrier_late_items,
+    ROUND(100.0 * SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN 1 ELSE 0 END) / 
+          NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS carrier_late_rate_pct,
+    ROUND(SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN (oi.item_price + oi.freight_value) ELSE 0 END), 2) AS carrier_late_transaction_exposure,
+    SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN 1 ELSE 0 END) AS seller_late_items,
+    ROUND(SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN (oi.item_price + oi.freight_value) ELSE 0 END), 2) AS seller_late_transaction_exposure,
+    
     ROUND(AVG(CASE WHEN oi.is_delivered = 1 THEN oi.delivery_delay_days END), 2) AS avg_delay_days,
     ROUND(AVG(CASE WHEN oi.is_late = 1 THEN oi.delivery_delay_days END), 2) AS avg_delay_days_late_items,
     

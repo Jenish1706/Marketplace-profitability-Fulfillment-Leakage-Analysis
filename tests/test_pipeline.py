@@ -111,8 +111,8 @@ class TestDataEngineeringPipeline(unittest.TestCase):
         print(f"{'freight':<22} | {snap1['freight']:>14,.2f} | {snap2['freight']:>14,.2f}")
         print(f"{'freight burden %':<22} | {snap1['freight_burden_pct']:>13.2f}% | {snap2['freight_burden_pct']:>13.2f}%")
         print(f"{'P1 sellers':<22} | {snap1['p1_seller_count']:>14} | {snap2['p1_seller_count']:>14}")
-        print(f"{'P1 exposure':<22} | {snap1['p1_late_exposure']:>14,.2f} | {snap2['p1_late_exposure']:>14,.2f}")
-        print(f"{'base recovery':<22} | {snap1['base_recovery_25pct']:>14,.2f} | {snap2['base_recovery_25pct']:>14,.2f}")
+        print(f"{'P1 exposure':<22} | {snap1['p1_seller_late_exposure']:>14,.2f} | {snap2['p1_seller_late_exposure']:>14,.2f}")
+        print(f"{'base mitigation':<22} | {snap1['base_mitigation_25pct']:>14,.2f} | {snap2['base_mitigation_25pct']:>14,.2f}")
         print("-" * 54)
         print(" DETERMINISM CHECK: PASS")
         print("=" * 54 + "\n")
@@ -121,9 +121,11 @@ class TestDataEngineeringPipeline(unittest.TestCase):
         self.assertEqual(snap1, snap2)
         self.assertEqual(snap1["orders"], 99441)
         self.assertEqual(snap1["items"], 112650)
-        self.assertEqual(snap1["p1_seller_count"], 83)
+        self.assertEqual(snap1["p1_seller_count"], 113)
         self.assertAlmostEqual(snap1["gmv"], 13591643.70, places=2)
         self.assertAlmostEqual(snap1["freight"], 2251909.54, places=2)
+        self.assertAlmostEqual(snap1["p1_seller_late_exposure"], 181377.55, places=2)
+        self.assertAlmostEqual(snap1["base_mitigation_25pct"], 45344.39, places=2)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
