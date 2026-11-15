@@ -1,9 +1,9 @@
 # Marketplace Profitability & Fulfillment Leakage Diagnostic
-### Operational Unit Economics · Root-Cause Decomposition · Pareto Allocation · Power BI
+### Operational Unit Economics · Root-Cause Decomposition · Pareto Allocation · Decision Modeling
 
 [![SQL](https://img.shields.io/badge/SQL-DuckDB%20%7C%20PostgreSQL-blue.svg)](sql/)
 [![Python](https://img.shields.io/badge/Python-3.9%20%7C%20Pandas%20%7C%20Statsmodels-green.svg)](notebooks/)
-[![Power BI](https://img.shields.io/badge/Power%20BI-Star%20Schema%20Model-yellow.svg)](dashboard/)
+[![Data Models](https://img.shields.io/badge/Data%20Models-Star%20Schema%20Exports-yellow.svg)](dashboard/)
 [![PDF Report](https://img.shields.io/badge/Executive%20Report-2--Page%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
 [![Tests](https://img.shields.io/badge/Verification-Automated%20Pipeline%20Passed-brightgreen.svg)](tests/verify_pipeline.py)
 
@@ -27,12 +27,12 @@ Instead, it demonstrates **business judgment, relational data modeling, controll
 ## Engineering & Impact Highlights
 
 ```text
-( Solved marketplace fulfillment leakage using DuckDB analytical SQL pipelines, Pareto modeling, and Star-Schema Power BI )
+( Quantified operational fulfillment friction and unit economics using DuckDB analytical SQL, non-parametric statistics, and star-schema dimensional modeling )
 ```
 
-• **Recovered R$94K exposure** by building **DuckDB window models**, catching **83 chronic sellers** who drove 28% of late fulfillment leakage across 99.4K orders  
-• **Fixed 14.7% metric distortion** with **decoupled DuckDB CTEs**, stopping **order-item multi-grain fan-out** that had falsely inflated delivery rates to 111.7%  
-• **Traced 59% review collapse** using **Kruskal-Wallis non-parametric tests**, proving **transit delay rather than item pricing** drove 68% of 1-star bad reviews  
+• **Quantified late-order economic exposure** across 99.4K orders, decomposing fulfillment bottlenecks between seller dispatch handling and carrier transit  
+• **Decoupled order and item analytical grains** using dedicated DuckDB CTEs, isolating 99.4K orders from 112.7K order items to prevent fan-out distortion  
+• **Analyzed customer sentiment degradation** across delivery cohorts with non-parametric Kruskal-Wallis tests and logistic regression, isolating pre- vs post-delivery review timing  
 
 ---
 
@@ -44,19 +44,19 @@ This diagnostic enforces a defensible **Three-Level Economic Architecture**:
 
 ```
 LEVEL 1 — Transaction Exposure (Observable)
-  ├── Late-Order GMV Exposure:       E_late^GMV = R$ 1,158,920.51
-  ├── Late-Order Freight Exposure:   E_late^freight = R$ 192,704.45
+  ├── Late-Order GMV Exposure:       E_late^GMV = R$ 1,158,920.51 (Pending Stage A date-level recalculation)
+  ├── Late-Order Freight Exposure:   E_late^freight = R$ 192,704.45 (Pending Stage A date-level recalculation)
   └── Total Late Transaction Value:  E_late = R$ 1,351,624.96 (Affected transaction volume)
 
 LEVEL 2 — Cost Burden (Observable)
   ├── Platform Freight Burden:       Total Freight / Total GMV = 16.57%
   └── High-Freight Exposure:         R$ 1,855,750.93 GMV where Freight-to-Value >= 30%
 
-LEVEL 3 — Recoverable Economic Exposure (Scenario-Based)
-  Focuses exclusively on Priority 1 (P1) Sellers (R$ 377,768.41 Late Exposure):
-  ├── Conservative Case (10% Addressable Recovery): R$ 37,776.84
-  ├── Base Case (25% Addressable Recovery - Target): R$ 94,442.10
-  └── Optimistic Case (40% Addressable Recovery):    R$ 151,107.36
+LEVEL 3 — Operational Risk Mitigation Scenarios (Scenario-Based)
+  Focuses on Priority 1 (P1) Sellers (R$ 377,768.41 Late Exposure; pending rerun under seller-attributed lateness):
+  ├── Conservative Scenario (10% GMV Mitigation): R$ 37,776.84
+  ├── Base Scenario (25% GMV Mitigation):         R$ 94,442.10
+  └── Optimistic Scenario (40% GMV Mitigation):   R$ 151,107.36
 ```
 
 ---
@@ -116,10 +116,10 @@ LEVEL 3 — Recoverable Economic Exposure (Scenario-Based)
 - **Severe Q1 2018 Fulfillment Collapse:** Rather than recovering post-holiday, late delivery rates spiked to **15.99% in Feb** and peaked at **21.36% in March 2018** (over 1 in 5 orders delivered late), with average delays of **+8.87 days** for late shipments.
 - **Freight Inflation:** Platform freight burden rose steadily from 14.03% in Jan 2017 to over **18.23% by mid-2018**.
 
-### 2. Pareto Concentration (Top 10% Sellers = 75.8% Exposure)
-Cumulative exposure window functions reveal extreme asymmetry:
-- **Decile 1 (Top 310 sellers, 10% of seller base):** Accounts for **75.83% (R$ 1,024,909.34)** of total late transaction exposure.
-- **Top 20% of sellers:** Account for **90.47%** of cumulative exposure.
+### 2. Pareto Concentration & Commercial Baseline
+Cumulative exposure window functions reveal concentration, though strongly coupled to commercial scale:
+- **Decile 1 (Top 310 sellers, 10% of seller base):** Generates **61.27% of total GMV (R$ 8.33M)** and accounts for **75.83% (R$ 1,024,909.34)** of late transaction exposure (concentration lift of **1.24×**).
+- **Top 20% of sellers:** Account for **90.47%** of cumulative late exposure.
 - **Bottom 50% of sellers:** Zero late items delivered.
 
 ### 3. Volume × Severity Decoupling
@@ -135,9 +135,10 @@ Intra-state São Paulo deliveries (SP $\to$ SP) operate efficiently (5.5% late r
 - **On-Time Baseline:** Average Review Score = **4.29 / 5.00** (6.6% low reviews $\le 2$ stars).
 - **1–2 Days Late:** Drops to **3.77** (13.7% low reviews).
 - **3–5 Days Late:** Collapses to **2.47** (48.4% low reviews).
-- **>5 Days Late:** Plummets to **1.74** (68.6% low reviews).
+- **>5 Days Late:** Plummets to **1.74** (68.6% low reviews $\le 2$ stars).
+- **Review Timing Nuance:** Among late orders, 70.2% of reviews were submitted *before* the order was delivered (reflecting prompt arrival survey response upon promised date breach, rather than post-delivery satisfaction).
 - **Non-Parametric Tests:** Kruskal-Wallis $H = 10,316.60$ ($p < 10^{-15}$); Mann-Whitney $U$ rank-biserial effect size $r = -0.76$ for $>5$ days late.
-- **Multivariate Logistic Regression:** Delivery delay is the dominant conditional predictor of poor reviews ($\text{OR} = 1.047 \text{ per delay day}, p < 0.001$), controlling for price, freight ratio, and interstate routing.
+- **Multivariate Logistic Regression:** Delivery delay is strongly conditionally associated with poor reviews ($\text{OR} = 1.064 \text{ per delay day}, p < 0.001$, coef = 0.0617), controlling for price, freight ratio, and interstate routing.
 
 ---
 
@@ -147,17 +148,20 @@ To ensure defensibility, sellers are classified into deterministic tiers using p
 
 $$\text{P1 Tier} = \{s \in \text{Sellers} \mid N_s \ge 30 \land E_s \ge P_{75}(E) \land (\text{LateRate}_s \ge P_{75}(\text{LateRate}) \lor \text{FreightBurden}_s \ge P_{75}(\text{FreightBurden}))\}$$
 
-| Priority Tier | Seller Count | % Seller Base | Total Orders | Total GMV (R$) | Total Late Exposure (R$) | % Platform Late Exp | Addressable Recovery (Base 25%) | Recommended Operational Action |
+| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Total Late Exposure (R$) | % Platform Late Exp | Late Exposure Mitigation (Base 25% Scenario) | Recommended Operational Action |
 |---|---|---|---|---|---|---|---|---|
-| **P1 — Immediate Intervention** | **83** | **2.68%** | 19,046 | R$ 2.35M | **R$ 377,768.41** | **27.95%** | **R$ 94,442.10** | Mandatory 24-hr dispatch SLA, dynamic EDD recalibration, packaging audit |
+| **P1 — Immediate Intervention** | **83** | **2.68%** | 19,046 | R$ 2.35M | **R$ 377,768.41** | **27.95%** | **R$ 94,442.10** | Lead-time calibration, packaging audit, carrier handoff inspection |
 | **P2 — Operational Investigation** | 272 | 8.79% | 43,025 | R$ 5.30M | R$ 504,623.53 | 37.33% | R$ 126,155.88 | Carrier dispatch audit, lane-specific carrier re-allocation |
 | **P3 — Operational Monitoring** | 149 | 4.81% | 10,962 | R$ 1.55M | R$ 153,332.79 | 11.34% | R$ 38,333.20 | Automated portal threshold warnings; 30-day monitoring window |
-| **P4 — Standard Governance** | 2,591 | 83.72% | 26,977 | R$ 4.39M | R$ 315,900.23 | 23.37% | R$ 78,975.06 | Routine partner management; healthy performance benchmark |
+| **P4 — Low Volume / Standard Governance** | 2,591 | 83.72% | 26,977 | R$ 4.39M | R$ 315,900.23 | 23.37% | R$ 78,975.06 | Routine partner management; low-volume sellers ($N < 30$) and healthy benchmarks |
+
+*\*Note: Total orders across tiers sum to 100,010 because multi-seller orders (1,278 orders) represent multiple seller-order fulfillment engagements.*
 
 ### Volume Cutoff Sensitivity Check
 - **$N \ge 20$:** 104 P1 sellers, R$ 415.6K exposure
 - **$N \ge 30$ (Base):** 83 P1 sellers, R$ 377.8K exposure
 - **$N \ge 50$:** 51 P1 sellers, R$ 314.4K exposure
+*(Note: Tier figures shown reflect baseline SQL and are subject to recalculation under date-level lateness and seller handover decoupling.)*
 
 ---
 
