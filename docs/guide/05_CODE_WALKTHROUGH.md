@@ -53,9 +53,8 @@ The repository is structured into distinct, decoupled subsystems:
 ---
 
 ### Stage 2: Staging Ingestion Engine (`pipeline/ingestion.py`)
-- **Key Function:** `run_ingestion(db_path: str, config: dict, logger: PipelineLogger) -> dict`
+- **Key Function:** `ingest_raw_sources(con: duckdb.DuckDBPyConnection, config: dict, logger: PipelineLogger = None) -> dict`
 - **Execution Mechanism:**
-  - Connects to DuckDB at `db_path`.
   - Iterates through `config["source_files"]`.
   - For each raw CSV file, executes:
     ```sql
@@ -70,11 +69,19 @@ The repository is structured into distinct, decoupled subsystems:
 
 ### Stage 3: Data Quality & Schema Validation (`pipeline/validation.py`)
 - **Key Functions:**
-  - `validate_source_files(raw_dir: str, config: dict, logger: PipelineLogger) -> bool`: Pre-ingestion check ensuring all 9 CSV files exist on disk and have file size $> 0$ bytes.
-  - `validate_staging_data(con: duckdb.DuckDBPyConnection, config: dict, logger: PipelineLogger) -> bool`: Post-ingestion health gate.
+  - `validate_sources_exist(config: dict, logger: PipelineLogger = None) -> bool`: Pre-ingestion check ensuring all 9 CSV files exist on disk and have file size $> 0$ bytes.
+  - `validate_staging_health(con: duckdb.DuckDBPyConnection, config: dict, logger: PipelineLogger = None) -> bool`: Post-ingestion health gate.
 - **Non-Obvious Lines:**
-  - Parameterized timestamp check: Rather than converting timestamps in Python, validates parseability directly in DuckDB using `TRY_CAST(col AS TIMESTAMP)`. If any row fails to parse, raises a descriptive `ValueError`.
+  - Parameterized timestamp check: Rather than converting timestamps in Python, validates parseability directly in DuckDB using `TRY_CAST(col AS TIMESTAMP)`. If any row fails to parse, raises a descriptive `PipelineValidationError`.
   - Non-negative financial assertion: Executes `SELECT COUNT(*) FROM {table} WHERE price < 0 OR freight_value < 0` to immediately abort the pipeline if corrupted commercial transactions are detected.
+
+---
+
+### Master Pipeline Orchestrator (`pipeline/run_pipeline.py`)
+- **Key Function:** `run_pipeline(config_path="pipeline/config.yaml", logger=None, return_snapshot=False)`
+- **Execution Mechanism:**
+  - Coordinates Stages 1 through 5 in sequence.
+  - Guaranteed database connection cleanup via `try ... finally: con.close()` to prevent Windows file-lock contention.
 
 ---
 
@@ -99,7 +106,7 @@ The repository is structured into distinct, decoupled subsystems:
 ---
 
 ### Stage 5: Verification & Integrity Assertions (`tests/verify_pipeline.py`)
-- **Key Function:** `main() -> int`
+- **Key Function:** `run_pipeline()`
 - **7 Automated Invariant Assertions:**
   1. `fact_orders` primary key uniqueness (`COUNT(*) == COUNT(DISTINCT order_id)`).
   2. `fact_order_items` composite key uniqueness (`COUNT(*) == COUNT(DISTINCT order_id || '-' || order_item_id)`).
@@ -115,21 +122,22 @@ The repository is structured into distinct, decoupled subsystems:
 
 #### 1. Dynamic Table Renderer (`scripts/render_readme_tables.py`)
 - **Key Functions:**
-  - `get_db_connection(db_path: str) -> duckdb.DuckDBPyConnection`: Attempts to open `marketplace.duckdb` in read-only mode. If the file does not exist (e.g. on a fresh git clone), automatically constructs in-memory tables directly from raw CSVs so checks pass instantly.
-  - `fetch_table_data(con)`: Executes analytical queries against DuckDB views (`view_intervention_tier_summary`, `view_pareto_seller_deciles`, `view_seller_persistence_check`, `view_econometric_regression_results`).
-  - `render_markdown_table(headers, rows)`: Formats data into clean GitHub-flavored markdown.
-  - `--check` flag: Compares current markdown tables in `README.md` and `report/decision_memo.md` against live database query results. Exits with code 1 if drift is detected.
+  - `get_rendered_blocks(con)`: Executes analytical queries against DuckDB views (`view_intervention_tier_summary`, `view_threshold_sensitivity_check`, `view_seller_persistence_check`) and renders markdown string blocks. Uses `get_db_connection` imported from `scripts.run_review_econometrics` for in-memory fallback.
+  - `update_file_markers(file_path, blocks, check_only=False)`: Injects or diff-checks markdown content between `<!-- BEGIN_* -->` and `<!-- END_* -->` marker tags.
+  - `sync_all(check_only=False)`: Main coordination function supporting `--check` flag: compares current markdown tables in `README.md` and `report/decision_memo.md` against live database query results. Exits with code 1 if drift is detected.
 
 #### 2. Review Econometrics Engine (`scripts/run_review_econometrics.py`)
 - **Key Functions:**
-  - `run_econometric_analysis()`:
-    - Extracts orders with customer review timestamps and delivery timestamps.
+  - `get_db_connection(db_path=None, read_only=True)`: Connects to DuckDB with in-memory CSV fallback.
+  - `load_data(con=None, db_path=None)`: Extracts orders with customer review timestamps and delivery timestamps.
+  - `fit_models(df_reg)`:
     - Fits Kruskal-Wallis $H$-test across delivery delay cohorts.
     - Fits Mann-Whitney $U$-test and calculates rank-biserial correlation $r$.
     - Fits Model A (delivery delay) and Model B (information set at survey time) using `statsmodels.api.Logit`.
     - Implements Liang-Zeger cluster-robust covariance matrix with `cov_type='cluster'`, `cov_kwds={'groups': df['seller_id']}`.
     - Runs sensitivity checks comparing `seller_id` SEs against `seller_state` and `HC1`.
-    - Updates `report/econometrics_results.json`.
+  - `generate_regression_markdown_table(models)`: Formats regression coefficients, odds ratios, standard error sensitivities, and p-values into markdown.
+  - `main()`: CLI entrypoint that updates `report/econometrics_results.json` and prints console tables.
 
 #### 3. Master Verification Orchestrator (`scripts/run_all.py`)
 - **Key Function:** `main() -> int`

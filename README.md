@@ -131,4 +131,4 @@ Executes staging ingestion, analytical SQL transformations, pipeline integrity a
 
 ## 7. License
 
-Released under the [MIT License](LICENSE). Raw Olist dataset released on Kaggle under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
+Released under the [MIT License](https://opensource.org/licenses/MIT). Raw Olist dataset released on Kaggle under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).

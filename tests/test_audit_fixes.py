@@ -410,5 +410,67 @@ class TestAuditFixes(unittest.TestCase):
         pattern = re.compile(r"recoverable|healthy operational|transaction exposure", re.IGNORECASE)
         self.assertFalse(pattern.search(tex_text), "WRITEUP.tex must not contain forbidden phrases")
 
+    def test_d4_documentation_checks_gate_g3(self):
+        """D4 / Gate G3 Test: All relative markdown links resolve, walkthrough files/functions exist, render check passes."""
+        import re
+        import subprocess
+
+        # 1. Check all relative markdown links in README and docs/
+        md_files = [os.path.join(project_root, "README.md")]
+        for root, _, files in os.walk(os.path.join(project_root, "docs")):
+            for f in files:
+                if f.endswith(".md"):
+                    md_files.append(os.path.join(root, f))
+
+        link_pattern = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
+        broken_links = []
+        for md_path in md_files:
+            dir_name = os.path.dirname(md_path)
+            with open(md_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            for m in link_pattern.finditer(content):
+                link = m.group(2).strip()
+                if link.startswith("http://") or link.startswith("https://") or link.startswith("mailto:") or link.startswith("#"):
+                    continue
+                target_path = link.split("#")[0]
+                if not target_path:
+                    continue
+                full_target = os.path.normpath(os.path.join(dir_name, target_path))
+                if not os.path.exists(full_target):
+                    broken_links.append(f"{os.path.relpath(md_path, project_root)} -> {link}")
+
+        self.assertEqual(broken_links, [], f"Broken relative links found: {broken_links}")
+
+        # 2. Check all files and functions referenced in 05_CODE_WALKTHROUGH.md
+        walkthrough_funcs = [
+            ("pipeline/ingestion.py", "def ingest_raw_sources"),
+            ("pipeline/validation.py", "def validate_sources_exist"),
+            ("pipeline/validation.py", "def validate_staging_health"),
+            ("pipeline/run_pipeline.py", "def run_pipeline"),
+            ("tests/verify_pipeline.py", "def run_pipeline"),
+            ("scripts/render_readme_tables.py", "def get_rendered_blocks"),
+            ("scripts/render_readme_tables.py", "def update_file_markers"),
+            ("scripts/render_readme_tables.py", "def sync_all"),
+            ("scripts/run_review_econometrics.py", "def get_db_connection"),
+            ("scripts/run_review_econometrics.py", "def fit_models"),
+            ("scripts/run_review_econometrics.py", "def generate_regression_markdown_table"),
+            ("scripts/run_all.py", "def main"),
+        ]
+        missing = []
+        for rel, sig in walkthrough_funcs:
+            fpath = os.path.join(project_root, rel)
+            if not os.path.isfile(fpath):
+                missing.append(f"Missing file: {rel}")
+                continue
+            with open(fpath, "r", encoding="utf-8") as f:
+                c = f.read()
+            if sig not in c:
+                missing.append(f"{rel} missing function: {sig}")
+        self.assertEqual(missing, [], f"Walkthrough discrepancies: {missing}")
+
+        # 3. Check README and memo rendering passes
+        res = subprocess.run([sys.executable, os.path.join(project_root, "scripts", "render_readme_tables.py"), "--check"], capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, f"Render check failed: {res.stdout} {res.stderr}")
+
 if __name__ == "__main__":
     unittest.main()
