@@ -383,5 +383,32 @@ class TestAuditFixes(unittest.TestCase):
         for term in ["GMV", "SLA", "3PL", "EDD", "Pareto Lift", "Cluster-Robust"]:
             self.assertIn(term, gl_text, f"Glossary missing term: {term}")
 
+    def test_d3_readme_and_study_material(self):
+        """D3 Acceptance Test: README under 200 lines, links to guide, and private study files complete."""
+        import re
+        readme_path = os.path.join(project_root, "README.md")
+        with open(readme_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        self.assertLessEqual(len(lines), 205, f"README.md should be under ~200 lines, found {len(lines)}")
+        readme_text = "".join(lines)
+        self.assertIn("docs/guide/00_START_HERE.md", readme_text, "README.md must link to docs/guide/00_START_HERE.md")
+
+        # Study guide checks
+        study_guide_path = os.path.join(project_root, ".audit", "STUDY_GUIDE.md")
+        self.assertTrue(os.path.isfile(study_guide_path), "STUDY_GUIDE.md must exist in .audit/")
+        with open(study_guide_path, "r", encoding="utf-8") as f:
+            sg_text = f.read()
+        self.assertIn("60-Second", sg_text)
+        self.assertIn("5-Minute", sg_text)
+        self.assertIn("Whiteboard", sg_text)
+        self.assertIn("Q25", sg_text, "STUDY_GUIDE.md must contain 25 interview questions")
+
+        # Writeup tex checks
+        writeup_tex_path = os.path.join(project_root, ".audit", "WRITEUP.tex")
+        with open(writeup_tex_path, "r", encoding="utf-8") as f:
+            tex_text = f.read()
+        pattern = re.compile(r"recoverable|healthy operational|transaction exposure", re.IGNORECASE)
+        self.assertFalse(pattern.search(tex_text), "WRITEUP.tex must not contain forbidden phrases")
+
 if __name__ == "__main__":
     unittest.main()
