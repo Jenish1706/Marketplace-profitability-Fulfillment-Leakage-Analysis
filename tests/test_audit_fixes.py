@@ -197,6 +197,26 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIn(f"{row_p1['avg_late_rate_2018']:.2f}%", memo_text)
         self.assertIn("BEGIN_PERSISTENCE_CHECK", memo_text)
 
+    def test_mp04_snapshot_formatting(self):
+        """MP-04 Fix Test: Verify pipeline logger formats base_mitigation_25pct as currency R$, not %."""
+        import io
+        from contextlib import redirect_stdout
+        from pipeline.logger import PipelineLogger
+        
+        logger = PipelineLogger(log_dir=os.path.join(project_root, "logs"))
+        logger.record_snapshot({
+            "freight_burden_pct": 16.57,
+            "base_mitigation_25pct": 45344.39
+        })
+        
+        f = io.StringIO()
+        with redirect_stdout(f):
+            logger.finalize()
+        out = f.getvalue()
+        
+        self.assertIn("R$ 45,344.39", out, "base_mitigation_25pct must be formatted as currency R$ 45,344.39")
+        self.assertNotIn("45344.39%", out, "base_mitigation_25pct must not be formatted as 45344.39%")
+
     def test_p18_tier_naming_and_documentation(self):
         """P1-8 Fix Test: P4 tier is properly designated as Low Volume / Not Prioritised."""
         tiers = [row[0] for row in self.con.execute("SELECT priority_tier FROM view_intervention_tier_summary").fetchall()]

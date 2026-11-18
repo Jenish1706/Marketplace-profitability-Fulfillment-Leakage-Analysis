@@ -93,7 +93,7 @@ class PipelineLogger:
             print("\nAnalytical Reconciliation Snapshot:")
             for k, v in self.snapshot.items():
                 if isinstance(v, float):
-                    if "recovery" in k.lower() or "exposure" in k.lower() or "gmv" in k.lower() or (("freight" in k.lower() or "price" in k.lower()) and "pct" not in k.lower()):
+                    if "mitigation" in k.lower() or "recovery" in k.lower() or "exposure" in k.lower() or "gmv" in k.lower() or (("freight" in k.lower() or "price" in k.lower()) and "pct" not in k.lower()):
                         val_str = f"R$ {v:,.2f}"
                     elif "pct" in k.lower() or "rate" in k.lower():
                         val_str = f"{v:.2f}%"
