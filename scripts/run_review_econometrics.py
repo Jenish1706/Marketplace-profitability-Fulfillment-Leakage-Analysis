@@ -5,12 +5,51 @@ Primary cluster-robust covariance uses seller_id (2,953 clusters).
 Sensitivity checks report seller_state (27 clusters) and HC1 robust standard errors.
 """
 
+import os
 import duckdb
 import statsmodels.formula.api as smf
 import numpy as np
 
-def load_data(db_path='marketplace.duckdb'):
-    con = duckdb.connect(db_path, read_only=True)
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+def get_db_connection(db_path=None, read_only=True):
+    if db_path is None:
+        db_path = os.path.join(PROJECT_ROOT, "marketplace.duckdb")
+    if os.path.isfile(db_path):
+        return duckdb.connect(db_path, read_only=read_only)
+    
+    con = duckdb.connect()
+    tables = [
+        ("olist_orders", os.path.join(PROJECT_ROOT, "data", "raw", "olist_orders_dataset.csv")),
+        ("olist_order_items", os.path.join(PROJECT_ROOT, "data", "raw", "olist_order_items_dataset.csv")),
+        ("olist_order_payments", os.path.join(PROJECT_ROOT, "data", "raw", "olist_order_payments_dataset.csv")),
+        ("olist_order_reviews", os.path.join(PROJECT_ROOT, "data", "raw", "olist_order_reviews_dataset.csv")),
+        ("olist_products", os.path.join(PROJECT_ROOT, "data", "raw", "olist_products_dataset.csv")),
+        ("olist_sellers", os.path.join(PROJECT_ROOT, "data", "raw", "olist_sellers_dataset.csv")),
+        ("olist_customers", os.path.join(PROJECT_ROOT, "data", "raw", "olist_customers_dataset.csv")),
+        ("olist_geolocation", os.path.join(PROJECT_ROOT, "data", "raw", "olist_geolocation_dataset.csv")),
+        ("product_category_name_translation", os.path.join(PROJECT_ROOT, "data", "raw", "product_category_name_translation.csv"))
+    ]
+    for tbl, path in tables:
+        con.execute(f"CREATE OR REPLACE TABLE {tbl} AS SELECT * FROM read_csv_auto('{path.replace(chr(92), '/')}')")
+    
+    for sql_file in [
+        "sql/03_order_item_fact.sql",
+        "sql/04_kpi_layer.sql",
+        "sql/05_root_cause_analysis.sql",
+        "sql/06_pareto_analysis.sql",
+        "sql/07_intervention_priority.sql"
+    ]:
+        with open(os.path.join(PROJECT_ROOT, sql_file), "r", encoding="utf-8") as f:
+            con.execute(f.read())
+    return con
+
+def load_data(con=None, db_path=None):
+    close_con = False
+    if con is None:
+        con = get_db_connection(db_path=db_path, read_only=True)
+        close_con = True
+
     try:
         df_reg = con.execute('''
             SELECT 
@@ -42,7 +81,8 @@ def load_data(db_path='marketplace.duckdb'):
             WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
         ''').df()
     finally:
-        con.close()
+        if close_con:
+            con.close()
 
     df_reg['delay_days_late'] = np.maximum(0, df_reg['delivery_delay_days'])
     df_reg['log_price'] = np.log1p(df_reg['gmv'])

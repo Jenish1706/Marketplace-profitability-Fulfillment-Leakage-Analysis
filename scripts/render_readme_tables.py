@@ -14,7 +14,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from scripts.run_review_econometrics import load_data, fit_models, generate_regression_markdown_table
+from scripts.run_review_econometrics import load_data, fit_models, generate_regression_markdown_table, get_db_connection
 
 def get_rendered_blocks(con):
     # 1. Economic Framework Block
@@ -79,7 +79,7 @@ def get_rendered_blocks(con):
     )
 
     # 4. Econometric Regression Table Block (Model B with SE Sensitivities)
-    df_reg = load_data()
+    df_reg = load_data(con=con)
     models = fit_models(df_reg)
     regression_content = generate_regression_markdown_table(models)
 
@@ -139,8 +139,7 @@ def update_file_markers(file_path, blocks, check_only=False):
         return True
 
 def sync_all(check_only=False):
-    db_path = os.path.join(PROJECT_ROOT, "marketplace.duckdb")
-    con = duckdb.connect(db_path, read_only=True)
+    con = get_db_connection(read_only=True)
     try:
         blocks = get_rendered_blocks(con)
     finally:
