@@ -237,9 +237,30 @@ class TestAuditFixes(unittest.TestCase):
         self.assertGreater(rates['P1_2017'], rates['Other_2017'], "P1 sellers must show persistent higher lateness out-of-sample")
 
     def test_p18_tier_naming_and_documentation(self):
-        """P1-8 Fix Test: P4 tier is properly designated as Low Volume / Standard Governance."""
+        """P1-8 Fix Test: P4 tier is properly designated as Low Volume / Not Prioritised."""
         tiers = [row[0] for row in self.con.execute("SELECT priority_tier FROM view_intervention_tier_summary").fetchall()]
-        self.assertIn("P4 - Low Volume / Standard Governance", tiers)
+        self.assertIn("P4 - Low Volume / Not Prioritised", tiers)
+
+    def test_mp02_honest_money_framing(self):
+        """MP-02 Fix Test: Assert no 'recoverable', 'healthy operational', or 'transaction exposure' in README, report/, scripts/."""
+        import re
+        pattern = re.compile(r"recoverable|healthy operational|transaction exposure", re.IGNORECASE)
+        target_paths = [
+            os.path.join(project_root, "README.md"),
+            os.path.join(project_root, "report", "decision_memo.md"),
+            os.path.join(project_root, "report", "generate_decision_memo_pdf.py"),
+            os.path.join(project_root, "scripts", "generate_writeup_pdf.py"),
+            os.path.join(project_root, "scripts", "render_readme_tables.py"),
+            os.path.join(project_root, "scripts", "run_review_econometrics.py"),
+        ]
+        violations = []
+        for p in target_paths:
+            if os.path.exists(p):
+                with open(p, "r", encoding="utf-8") as f:
+                    for i, line in enumerate(f, 1):
+                        if pattern.search(line):
+                            violations.append(f"{os.path.basename(p)}:{i}: {line.strip()}")
+        self.assertEqual(violations, [], f"Found forbidden terminology: {violations}")
 
     def test_open_lead1_unfulfilled_orders_breakdown(self):
         """Open Lead 1 Fix Test: Quantify unfulfilled/undelivered orders outside the delivered rate."""

@@ -293,7 +293,7 @@ def build_pdf():
     # Section 2: Multi-Dimensional Root Cause Analysis
     story.append(Paragraph("2. Root-Cause Decomposition: Seller vs Carrier Attribution", h1_style))
     story.append(Paragraph(
-        "Decomposition of the 6,534 late delivered orders (R$ 1.15M late transaction exposure) proves that <b>carrier transit delay, rather than seller handling delay, accounts for 71.0% of late deliveries</b> (5,155 items where sellers handed packages to carriers before the shipping deadline). Seller dispatch breaches account for 29.0% (2,108 items, R$ 371K exposure). In addition, 2,963 unfulfilled orders (1,107 shipped, 625 canceled, 609 unavailable) sit outside the late delivery rate as separate failure classes.",
+        "Decomposition of the 6,534 late delivered orders (R$ 1.15M late-order GMV and freight) proves that <b>carrier transit delay, rather than seller handling delay, accounts for 71.0% of late deliveries</b> (5,155 items where sellers handed packages to carriers before the shipping deadline). Seller dispatch breaches account for 29.0% (2,108 items, R$ 371K exposure). In addition, 2,963 unfulfilled orders (1,107 shipped, 625 canceled, 609 unavailable) sit outside the late delivery rate as separate failure classes.",
         body_style
     ))
     story.append(Spacer(1, 3))
@@ -394,7 +394,7 @@ def build_pdf():
     # Section 4: Addressable Economic Exposure & Sensitivity
     story.append(Paragraph("4. Quantified Late-Order Mitigation & Scenario Modeling", h1_style))
     story.append(Paragraph(
-        f"We distinguish strictly between <b>observable transaction exposure</b> and <b>scenario-based mitigation models</b>. Total platform late exposure is R$ {kpi_row['total_late_transaction_exposure']/1e6:.2f}M (R$ {kpi_row['total_late_order_gmv_exposure']/1e6:.2f}M GMV). Focusing operations exclusively on the {int(p1_summary['seller_count'])} P1 sellers (R$ {p1_summary['total_seller_late_exposure']:,.2f} seller late exposure) yields the following mitigation scenarios:",
+        f"We distinguish strictly between <b>observable late-order GMV and freight</b> and <b>illustrative scenario mitigation models (assumed rates, not measured)</b>. Total platform late-order GMV is R$ {kpi_row['total_late_order_gmv_exposure']/1e6:.2f}M (plus R$ {kpi_row['total_late_order_freight_exposure']/1e6:.2f}M freight). Focusing operations exclusively on the {int(p1_summary['seller_count'])} P1 sellers (R$ {p1_summary['total_seller_late_exposure']:,.2f} seller late exposure) yields the following illustrative scenarios:",
         body_style
     ))
     

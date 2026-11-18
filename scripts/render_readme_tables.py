@@ -22,18 +22,18 @@ def get_rendered_blocks(con):
 
     framework_content = (
         "```\n"
-        "LEVEL 1 — Transaction Exposure (Observable)\n"
-        f"  ├── Late-Order GMV Exposure:       E_late^GMV = R$ {kpi['total_late_order_gmv_exposure']:,.2f}\n"
-        f"  ├── Late-Order Freight Exposure:   E_late^freight = R$ {kpi['total_late_order_freight_exposure']:,.2f}\n"
-        f"  └── Total Late Transaction Value:  E_late = R$ {kpi['total_late_transaction_exposure']:,.2f} (Date-level late delivery exposure)\n\n"
+        "LEVEL 1 — Late-Order GMV & Freight (Observable)\n"
+        f"  ├── Late-Order GMV:                 E_late^GMV = R$ {kpi['total_late_order_gmv_exposure']:,.2f}\n"
+        f"  ├── Late-Order Freight:             E_late^freight = R$ {kpi['total_late_order_freight_exposure']:,.2f}\n"
+        f"  └── Total Late-Order Value:         E_late = R$ {kpi['total_late_transaction_exposure']:,.2f} (Late-order GMV + freight)\n\n"
         "LEVEL 2 — Cost Burden (Observable)\n"
-        f"  ├── Platform Freight Burden:       Total Freight / Total GMV = {kpi['overall_freight_burden_pct']:.2f}%\n"
-        f"  └── High-Freight Exposure:         R$ {kpi['total_high_freight_gmv_exposure']:,.2f} GMV where Freight-to-Value >= 30%\n\n"
-        "LEVEL 3 — Operational Risk Mitigation Scenarios (Scenario-Based)\n"
-        f"  Focuses on Priority 1 (P1) Sellers (R$ {p1['total_seller_late_exposure']:,.2f} Seller-Caused Late Exposure across {int(p1['seller_count'])} merchants):\n"
-        f"  ├── Conservative Scenario (10% Operational Mitigation): R$ {p1['scenario_mitigation_conservative_10pct']:,.2f}\n"
-        f"  ├── Base Scenario (25% Operational Mitigation):         R$ {p1['scenario_mitigation_base_25pct']:,.2f}\n"
-        f"  └── Optimistic Scenario (40% Operational Mitigation):   R$ {p1['scenario_mitigation_optimistic_40pct']:,.2f}\n"
+        f"  ├── Platform Freight Burden:        Total Freight / Total GMV = {kpi['overall_freight_burden_pct']:.2f}%\n"
+        f"  └── High-Freight Exposure:          R$ {kpi['total_high_freight_gmv_exposure']:,.2f} GMV where Freight-to-Value >= 30%\n\n"
+        "LEVEL 3 — Illustrative Scenarios (Assumed Rates, Not Measured)\n"
+        f"  Focuses on Priority 1 (P1) Sellers (R$ {p1['total_seller_late_exposure']:,.2f} Seller Late GMV+Freight across {int(p1['seller_count'])} merchants):\n"
+        f"  ├── Conservative Scenario (10% Assumed Mitigation): R$ {p1['scenario_mitigation_conservative_10pct']:,.2f}\n"
+        f"  ├── Base Scenario (25% Assumed Mitigation):         R$ {p1['scenario_mitigation_base_25pct']:,.2f}\n"
+        f"  └── Optimistic Scenario (40% Assumed Mitigation):   R$ {p1['scenario_mitigation_optimistic_40pct']:,.2f}\n"
         "```"
     )
 
@@ -43,7 +43,7 @@ def get_rendered_blocks(con):
         'P1': "Lead-time calibration, packaging audit, carrier handoff inspection",
         'P2': "Carrier dispatch inspection, lane-specific carrier re-allocation",
         'P3': "Automated portal threshold warnings; 30-day monitoring window",
-        'P4': "Routine partner management; low-volume sellers ($N < 30$) and healthy benchmarks"
+        'P4': "Routine partner management; low-volume sellers ($N < 30$) and standard baseline operations"
     }
 
     tier_lines = [

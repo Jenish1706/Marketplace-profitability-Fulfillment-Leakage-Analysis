@@ -68,8 +68,8 @@ classified_sellers AS (
               OR (s.meets_min_volume_30 = 0 AND s.total_orders >= 10 AND s.seller_late_item_rate_pct >= 25.0)
             THEN 'P3 - Operational Monitoring'
             
-            -- P4: Low Volume or Healthy Operational Benchmarks
-            ELSE 'P4 - Low Volume / Standard Governance'
+            -- P4: Low Volume or Not Prioritised
+            ELSE 'P4 - Low Volume / Not Prioritised'
         END AS priority_tier,
 
         CASE 

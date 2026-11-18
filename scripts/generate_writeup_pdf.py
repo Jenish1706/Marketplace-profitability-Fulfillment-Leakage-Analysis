@@ -131,7 +131,7 @@ def build_pdf():
         body_style
     ))
     story.append(Paragraph(
-        "• <b>Level 1: Observable Transaction Exposure:</b> Total late delivered transaction exposure <i>E</i><sub>late</sub> = R$ 1.15M "
+        "• <b>Level 1: Observable Late-Order GMV & Freight:</b> Total late delivered order value <i>E</i><sub>late</sub> = R$ 1.15M "
         "(GMV R$ 985,924.34 + Freight R$ 164,967.79) across 6,534 date-level late orders (6.77% late delivery rate). Decomposed into "
         "<b>Seller-Caused Late Exposure</b> (R$ 371,281.14, 32.26%) and <b>Carrier-Caused Late Exposure</b> (R$ 779,610.99, 67.74%).",
         bullet_style
@@ -212,7 +212,7 @@ def build_pdf():
         bullet_style
     ))
     story.append(Paragraph(
-        "• <b>P4 (Low Volume / Standard Governance):</b> 2,448 low-volume partners (<i>N</i> &lt; 30) and healthy operational baselines (R$ 95,999.21 exposure).",
+        "• <b>P4 (Low Volume / Not Prioritised):</b> 2,448 low-volume partners (<i>N</i> &lt; 30) and standard baseline operations (R$ 95,999.21 exposure).",
         bullet_style
     ))
 

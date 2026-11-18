@@ -11,7 +11,7 @@
 
 ## 1. Executive Business Problem
 
-> *"GMV and order volume are growing, but marketplace economics are under pressure. Which sellers, product categories, and delivery regions are responsible for the largest operational and contribution-margin leakage, and which interventions should be prioritized based on recoverable economic impact?"*
+> *"GMV and order volume are growing, but marketplace economics are under pressure. Which sellers, product categories, and delivery regions are responsible for the largest operational and contribution-margin leakage, and which interventions should be prioritized to mitigate operational exposure?"*
 
 This project is a rigorous, business-oriented diagnostic engagement designed for an executive operations leadership team (COO, VP of Marketplace Operations, Head of Logistics). It addresses the core marketplace paradox: **rapid commercial expansion accompanied by operational fulfillment breakdown and unit-economic compression**.
 
@@ -44,20 +44,20 @@ This diagnostic enforces a defensible **Three-Level Economic Architecture**:
 
 <!-- BEGIN_ECONOMIC_FRAMEWORK -->
 ```
-LEVEL 1 — Transaction Exposure (Observable)
-  ├── Late-Order GMV Exposure:       E_late^GMV = R$ 985,924.34
-  ├── Late-Order Freight Exposure:   E_late^freight = R$ 164,967.79
-  └── Total Late Transaction Value:  E_late = R$ 1,150,892.13 (Date-level late delivery exposure)
+LEVEL 1 — Late-Order GMV & Freight (Observable)
+  ├── Late-Order GMV:                 E_late^GMV = R$ 985,924.34
+  ├── Late-Order Freight:             E_late^freight = R$ 164,967.79
+  └── Total Late-Order Value:         E_late = R$ 1,150,892.13 (Late-order GMV + freight)
 
 LEVEL 2 — Cost Burden (Observable)
-  ├── Platform Freight Burden:       Total Freight / Total GMV = 16.57%
-  └── High-Freight Exposure:         R$ 1,855,750.93 GMV where Freight-to-Value >= 30%
+  ├── Platform Freight Burden:        Total Freight / Total GMV = 16.57%
+  └── High-Freight Exposure:          R$ 1,855,750.93 GMV where Freight-to-Value >= 30%
 
-LEVEL 3 — Operational Risk Mitigation Scenarios (Scenario-Based)
-  Focuses on Priority 1 (P1) Sellers (R$ 181,377.55 Seller-Caused Late Exposure across 113 merchants):
-  ├── Conservative Scenario (10% Operational Mitigation): R$ 18,137.76
-  ├── Base Scenario (25% Operational Mitigation):         R$ 45,344.39
-  └── Optimistic Scenario (40% Operational Mitigation):   R$ 72,551.02
+LEVEL 3 — Illustrative Scenarios (Assumed Rates, Not Measured)
+  Focuses on Priority 1 (P1) Sellers (R$ 181,377.55 Seller Late GMV+Freight across 113 merchants):
+  ├── Conservative Scenario (10% Assumed Mitigation): R$ 18,137.76
+  ├── Base Scenario (25% Assumed Mitigation):         R$ 45,344.39
+  └── Optimistic Scenario (40% Assumed Mitigation):   R$ 72,551.02
 ```
 <!-- END_ECONOMIC_FRAMEWORK -->
 
@@ -120,7 +120,7 @@ LEVEL 3 — Operational Risk Mitigation Scenarios (Scenario-Based)
 
 ### 2. Pareto Concentration & Commercial Baseline
 Cumulative exposure window functions reveal concentration, though strongly coupled to commercial scale:
-- **Decile 1 (Top 310 sellers, 10% of seller base):** Generates **60.78% of total GMV (R$ 8.26M)** and accounts for **77.38% (R$ 890,580.39)** of late transaction exposure (concentration lift of **1.27×**).
+- **Decile 1 (Top 310 sellers, 10% of seller base):** Generates **60.78% of total GMV (R$ 8.26M)** and accounts for **77.38% (R$ 890,580.39)** of late-order GMV and freight (concentration lift of **1.27×**).
 - **Top 20% of sellers:** Account for **91.73%** of cumulative late exposure.
 - **Bottom 50% of sellers:** Zero late items delivered.
 
@@ -173,7 +173,7 @@ $$\text{P1 Tier} = \{s \in \text{Sellers} \mid N_s \ge 30 \land E_s \ge P_{75}(E
 | **P1 - Immediate Intervention** | **113** | **3.65%** | 20,576 | R$ 2.79M | **R$ 181,377.55** | **48.85%** | **R$ 45,344.39** | Lead-time calibration, packaging audit, carrier handoff inspection |
 | P2 - Operational Investigation | 211 | 6.82% | 33,823 | R$ 3.72M | R$ 54,637.04 | 14.72% | R$ 13,659.26 | Carrier dispatch inspection, lane-specific carrier re-allocation |
 | P3 - Operational Monitoring | 323 | 10.44% | 29,095 | R$ 3.98M | R$ 39,267.34 | 10.58% | R$ 9,816.83 | Automated portal threshold warnings; 30-day monitoring window |
-| P4 - Low Volume / Standard Governance | 2,448 | 79.10% | 16,516 | R$ 3.10M | R$ 95,999.21 | 25.86% | R$ 23,999.80 | Routine partner management; low-volume sellers ($N < 30$) and healthy benchmarks |
+| P4 - Low Volume / Not Prioritised | 2,448 | 79.10% | 16,516 | R$ 3.10M | R$ 95,999.21 | 25.86% | R$ 23,999.80 | Routine partner management; low-volume sellers ($N < 30$) and standard baseline operations |
 <!-- END_TIER_TABLE -->
 
 *\*Note: Total orders across tiers sum to 100,010 because multi-seller orders (1,278 orders) represent multiple seller-order fulfillment engagements.*
@@ -300,7 +300,7 @@ py report/generate_decision_memo_pdf.py
 
 | Common Interview Challenge | Methodologically Defensible Answer |
 |---|---|
-| *"How did you calculate profitability?"* | *"We explicitly avoided claiming actual profit because the dataset lacks unobserved platform costs (commissions, gateway fees, warehousing, carrier settlements). Instead, we separated observed metrics from derived transaction exposure and modeled scenario-based recoverable exposure."* |
+| *"How did you calculate profitability?"* | *"We explicitly avoided claiming actual profit because the dataset lacks unobserved platform costs (commissions, gateway fees, warehousing, carrier settlements). Instead, we separated observed metrics (late-order GMV and freight) from illustrative scenario-based operational mitigation models."* |
 | *"How did you catch and fix the 111.7% delivery rate anomaly?"* | *"Joining raw order items directly to parent orders created a multi-grain Cartesian fan-out where 110,197 delivered items were divided by 98,666 distinct orders. We decoupled the executive KPI query into separate order-level and item-level CTEs, mathematically restoring the true 97.02% delivery rate and 0.63% cancellation rate."* |
 | *"Why did you add a lightweight data engineering layer?"* | *"To make the analytical engagement robust, testable, and reproducible. The pipeline features declarative YAML configuration, source validation gates, deterministic staging rebuilds, structured run logging, and an automated verification gate, without over-engineering with heavy production tools like Airflow or Spark."* |
 | *"Why didn't you build an ML delay prediction model?"* | *"The business question was diagnostic and resource-allocation oriented: identifying which entities account for economic leakage and how to prioritize operations teams. A predictive model answers 'will this order be late?' whereas management needed to know 'which sellers and corridors should operations intervene on today to recover the most economic value?'"* |
