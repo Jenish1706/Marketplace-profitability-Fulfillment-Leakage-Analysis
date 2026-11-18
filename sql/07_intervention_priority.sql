@@ -161,3 +161,72 @@ SELECT
     COUNT(CASE WHEN s.total_orders >= 50 AND s.seller_late_exposure >= b_50.exp_p75 AND (s.seller_late_item_rate_pct >= b_50.late_p75 OR s.freight_burden_pct >= b_50.freight_p75) THEN 1 END),
     ROUND(SUM(CASE WHEN s.total_orders >= 50 AND s.seller_late_exposure >= b_50.exp_p75 AND (s.seller_late_item_rate_pct >= b_50.late_p75 OR s.freight_burden_pct >= b_50.freight_p75) THEN s.seller_late_exposure ELSE 0 END), 2)
 FROM view_seller_root_cause s CROSS JOIN b_50;
+
+-- ----------------------------------------------------------------------------
+-- 4. TEMPORAL PERSISTENCE CHECK (2017 -> 2018 OUT-OF-SAMPLE HOLDOUT)
+-- Validates whether 2017 P1 sellers maintain persistent high friction in 2018.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW view_seller_persistence_check AS
+WITH base_orders AS (
+    SELECT 
+        o.order_id,
+        oi.seller_id,
+        oi.item_price AS price,
+        oi.freight_value,
+        CAST(strftime(o.order_purchase_timestamp, '%Y') AS INT) AS order_year,
+        o.is_late
+    FROM fact_orders o
+    JOIN fact_order_items oi ON o.order_id = oi.order_id
+    WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
+),
+seller_2017 AS (
+    SELECT 
+        seller_id,
+        COUNT(DISTINCT order_id) AS orders_2017,
+        SUM(price) AS gmv_2017,
+        ROUND(100.0 * AVG(is_late), 2) AS late_rate_2017,
+        SUM(CASE WHEN is_late = 1 THEN price + freight_value ELSE 0 END) AS late_exp_2017
+    FROM base_orders
+    WHERE order_year = 2017
+    GROUP BY seller_id
+),
+benchmarks_2017 AS (
+    SELECT 
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_exp_2017) AS exp_p75,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_rate_2017) AS late_p75
+    FROM seller_2017
+    WHERE orders_2017 >= 20
+),
+classified_2017 AS (
+    SELECT 
+        s.*,
+        CASE 
+            WHEN s.orders_2017 >= 20 AND s.late_exp_2017 >= b.exp_p75 AND s.late_rate_2017 >= b.late_p75 THEN 'P1_2017'
+            ELSE 'Other_2017'
+        END AS tier_2017
+    FROM seller_2017 s
+    CROSS JOIN benchmarks_2017 b
+),
+seller_2018 AS (
+    SELECT 
+        seller_id,
+        COUNT(DISTINCT order_id) AS orders_2018,
+        SUM(is_late) AS late_orders_2018,
+        ROUND(100.0 * AVG(is_late), 2) AS late_rate_2018
+    FROM base_orders
+    WHERE order_year = 2018
+    GROUP BY seller_id
+)
+SELECT 
+    c.tier_2017,
+    COUNT(s18.seller_id) AS active_in_2018_sellers,
+    ROUND(AVG(s18.orders_2018), 1) AS avg_orders_2018,
+    ROUND(AVG(s18.late_rate_2018), 2) AS avg_late_rate_2018,
+    SUM(CASE WHEN s18.late_orders_2018 > 0 THEN 1 ELSE 0 END) AS sellers_with_late_in_2018,
+    ROUND(100.0 * SUM(CASE WHEN s18.late_orders_2018 > 0 THEN 1 ELSE 0 END) / COUNT(s18.seller_id), 2) AS pct_with_late_orders,
+    SUM(CASE WHEN s18.late_rate_2018 > 8.60 THEN 1 ELSE 0 END) AS sellers_above_base_rate,
+    ROUND(100.0 * SUM(CASE WHEN s18.late_rate_2018 > 8.60 THEN 1 ELSE 0 END) / COUNT(s18.seller_id), 2) AS pct_above_base_rate
+FROM classified_2017 c
+JOIN seller_2018 s18 ON c.seller_id = s18.seller_id
+GROUP BY c.tier_2017
+ORDER BY c.tier_2017;

@@ -174,67 +174,28 @@ class TestAuditFixes(unittest.TestCase):
 
     def test_p17_temporal_chronic_split(self):
         """P1-7 Fix Test: Verify out-of-sample persistence of 2017 P1 sellers into 2018."""
-        q = """
-        WITH base_orders AS (
-            SELECT 
-                o.order_id,
-                oi.seller_id,
-                oi.item_price AS price,
-                oi.freight_value,
-                CAST(strftime(o.order_purchase_timestamp, '%Y') AS INT) AS order_year,
-                o.is_late
-            FROM fact_orders o
-            JOIN fact_order_items oi ON o.order_id = oi.order_id
-            WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
-        ),
-        seller_2017 AS (
-            SELECT 
-                seller_id,
-                COUNT(DISTINCT order_id) AS orders_2017,
-                SUM(price) AS gmv_2017,
-                ROUND(100.0 * AVG(is_late), 2) AS late_rate_2017,
-                SUM(CASE WHEN is_late = 1 THEN price + freight_value ELSE 0 END) AS late_exp_2017
-            FROM base_orders
-            WHERE order_year = 2017
-            GROUP BY seller_id
-        ),
-        benchmarks_2017 AS (
-            SELECT 
-                PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_exp_2017) AS exp_p75,
-                PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_rate_2017) AS late_p75
-            FROM seller_2017
-            WHERE orders_2017 >= 20
-        ),
-        classified_2017 AS (
-            SELECT 
-                s.*,
-                CASE 
-                    WHEN s.orders_2017 >= 20 AND s.late_exp_2017 >= b.exp_p75 AND s.late_rate_2017 >= b.late_p75 THEN 'P1_2017'
-                    ELSE 'Other_2017'
-                END AS tier_2017
-            FROM seller_2017 s
-            CROSS JOIN benchmarks_2017 b
-        ),
-        seller_2018 AS (
-            SELECT 
-                seller_id,
-                COUNT(DISTINCT order_id) AS orders_2018,
-                ROUND(100.0 * AVG(is_late), 2) AS late_rate_2018
-            FROM base_orders
-            WHERE order_year = 2018
-            GROUP BY seller_id
-        )
-        SELECT 
-            c.tier_2017,
-            ROUND(AVG(s18.late_rate_2018), 2) AS avg_late_rate_2018
-        FROM classified_2017 c
-        JOIN seller_2018 s18 ON c.seller_id = s18.seller_id
-        GROUP BY c.tier_2017;
-        """
+        q = "SELECT tier_2017, avg_late_rate_2018 FROM view_seller_persistence_check"
         rates = dict(self.con.execute(q).fetchall())
         self.assertAlmostEqual(rates['P1_2017'], 13.05, delta=0.5, msg="2017 P1 sellers should maintain ~13% late rate in 2018")
         self.assertAlmostEqual(rates['Other_2017'], 8.60, delta=0.5, msg="Other sellers should maintain ~8.6% late rate in 2018")
         self.assertGreater(rates['P1_2017'], rates['Other_2017'], "P1 sellers must show persistent higher lateness out-of-sample")
+
+    def test_mp03_persistence_result_rendered(self):
+        """MP-03 Fix Test: Verify persistence result is rendered into README and decision memo from view."""
+        row_p1 = self.con.execute("SELECT * FROM view_seller_persistence_check WHERE tier_2017 = 'P1_2017'").df().iloc[0]
+        
+        # Check README
+        with open(os.path.join(project_root, "README.md"), "r", encoding="utf-8") as f:
+            readme_text = f.read()
+        self.assertIn(f"{row_p1['avg_late_rate_2018']:.2f}%", readme_text)
+        self.assertIn(f"{row_p1['pct_above_base_rate']:.2f}%", readme_text)
+        self.assertIn("BEGIN_PERSISTENCE_CHECK", readme_text)
+
+        # Check Decision Memo
+        with open(os.path.join(project_root, "report", "decision_memo.md"), "r", encoding="utf-8") as f:
+            memo_text = f.read()
+        self.assertIn(f"{row_p1['avg_late_rate_2018']:.2f}%", memo_text)
+        self.assertIn("BEGIN_PERSISTENCE_CHECK", memo_text)
 
     def test_p18_tier_naming_and_documentation(self):
         """P1-8 Fix Test: P4 tier is properly designated as Low Volume / Not Prioritised."""

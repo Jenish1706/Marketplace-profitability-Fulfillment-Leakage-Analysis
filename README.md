@@ -185,6 +185,16 @@ $$\text{P1 Tier} = \{s \in \text{Sellers} \mid N_s \ge 30 \land E_s \ge P_{75}(E
 - **$N \ge 50$:** 69 P1 sellers, R$ 145.5K seller late exposure
 <!-- END_SENSITIVITY_CHECK -->
 
+<!-- BEGIN_PERSISTENCE_CHECK -->
+### Out-of-Sample Persistence Check (2017 → 2018 Holdout)
+| 2017 Merchant Cohort | 2018 Active Sellers | Avg Orders (2018) | Avg Late Delivery Rate (2018) | Sellers with Late Orders (2018) | Share Exceeding Base Late Rate (8.60%) |
+|---|---|---|---|---|---|
+| **2017 P1 Priority Cohort** | 48 | 135.4 | **13.05%** | 87.50% (42/48) | **54.17% (26/48)** |
+| Other 2017 Sellers | 1,027 | 32.9 | 8.60% | 56.86% (584/1,027) | 32.13% (330/1,027) |
+
+**Persistence Validation:** Testing 2017 P1 sellers out-of-sample across 2018 demonstrates that operational friction is chronic. Among 2017 P1 merchants active in 2018, **54.17%** continued to exceed the platform baseline late rate (8.60%), averaging a **13.05% late delivery rate** (+51.7% relative penalty vs non-P1 merchants). Overall, 87.50% recorded late deliveries in 2018, validating that high-friction fulfillment reflects structural merchant dispatch deficits rather than transient seasonal noise.
+<!-- END_PERSISTENCE_CHECK -->
+
 ---
 
 ## 6. Repository Architecture
