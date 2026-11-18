@@ -331,5 +331,57 @@ class TestAuditFixes(unittest.TestCase):
             meth_text = f.read().lower()
         self.assertIn("falsif", meth_text, "04_METHODOLOGY.md must detail falsification criteria")
 
+    def test_d2_guide_files_05_to_09_and_glossary(self):
+        """D2 Acceptance Test: Guide files 05 to 09 and Glossary exist and contain required content."""
+        guide_dir = os.path.join(project_root, "docs", "guide")
+        required_files = [
+            "05_CODE_WALKTHROUGH.md",
+            "06_RUNBOOK.md",
+            "07_TESTING.md",
+            "08_DESIGN_DECISIONS.md",
+            "09_RESULTS_AND_LIMITATIONS.md",
+            "GLOSSARY.md",
+        ]
+        for fname in required_files:
+            fpath = os.path.join(guide_dir, fname)
+            self.assertTrue(os.path.isfile(fpath), f"Required guide file missing: {fname}")
+
+        # Check 05_CODE_WALKTHROUGH.md has stages and functions
+        with open(os.path.join(guide_dir, "05_CODE_WALKTHROUGH.md"), "r", encoding="utf-8") as f:
+            cw_text = f.read()
+        self.assertIn("pipeline/ingestion.py", cw_text)
+        self.assertIn("pipeline/validation.py", cw_text)
+        self.assertIn("scripts/run_review_econometrics.py", cw_text)
+
+        # Check 06_RUNBOOK.md has exact commands and troubleshooting
+        with open(os.path.join(guide_dir, "06_RUNBOOK.md"), "r", encoding="utf-8") as f:
+            rb_text = f.read()
+        self.assertIn("scripts/run_all.py", rb_text)
+        self.assertIn("Troubleshooting", rb_text)
+
+        # Check 07_TESTING.md has coverage and fresh-clone
+        with open(os.path.join(guide_dir, "07_TESTING.md"), "r", encoding="utf-8") as f:
+            t_text = f.read()
+        self.assertIn("fresh-clone", t_text.lower())
+
+        # Check 08_DESIGN_DECISIONS.md has ADR format
+        with open(os.path.join(guide_dir, "08_DESIGN_DECISIONS.md"), "r", encoding="utf-8") as f:
+            adr_text = f.read()
+        self.assertIn("Context", adr_text)
+        self.assertIn("Decision", adr_text)
+        self.assertIn("Alternatives", adr_text)
+        self.assertIn("Consequences", adr_text)
+
+        # Check 09_RESULTS_AND_LIMITATIONS.md has null results and validity threats
+        with open(os.path.join(guide_dir, "09_RESULTS_AND_LIMITATIONS.md"), "r", encoding="utf-8") as f:
+            res_text = f.read()
+        self.assertIn("Threats to Validity", res_text)
+
+        # Check GLOSSARY.md has entries
+        with open(os.path.join(guide_dir, "GLOSSARY.md"), "r", encoding="utf-8") as f:
+            gl_text = f.read()
+        for term in ["GMV", "SLA", "3PL", "EDD", "Pareto Lift", "Cluster-Robust"]:
+            self.assertIn(term, gl_text, f"Glossary missing term: {term}")
+
 if __name__ == "__main__":
     unittest.main()
