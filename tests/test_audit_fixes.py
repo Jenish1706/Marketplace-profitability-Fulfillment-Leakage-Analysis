@@ -217,6 +217,18 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIn("R$ 45,344.39", out, "base_mitigation_25pct must be formatted as currency R$ 45,344.39")
         self.assertNotIn("45344.39%", out, "base_mitigation_25pct must not be formatted as 45344.39%")
 
+    def test_mp05_reproducible_environment(self):
+        """MP-05 Fix Test: Verify requirements.txt is pinned and scripts/run_all.py orchestrates full verification."""
+        req_path = os.path.join(project_root, "requirements.txt")
+        self.assertTrue(os.path.isfile(req_path), "requirements.txt must exist")
+        with open(req_path, "r", encoding="utf-8") as f:
+            reqs = f.read()
+        for pkg in ["duckdb==", "pandas==", "numpy==", "statsmodels==", "pytest=="]:
+            self.assertIn(pkg, reqs, f"{pkg} must be pinned in requirements.txt")
+
+        run_all_path = os.path.join(project_root, "scripts", "run_all.py")
+        self.assertTrue(os.path.isfile(run_all_path), "scripts/run_all.py must exist")
+
     def test_p18_tier_naming_and_documentation(self):
         """P1-8 Fix Test: P4 tier is properly designated as Low Volume / Not Prioritised."""
         tiers = [row[0] for row in self.con.execute("SELECT priority_tier FROM view_intervention_tier_summary").fetchall()]

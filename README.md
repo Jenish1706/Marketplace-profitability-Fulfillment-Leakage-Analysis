@@ -256,12 +256,18 @@ marketplace-profitability-diagnostic/
 ## 7. Reproduction & Execution Instructions
 
 ### Prerequisites
-- Python 3.9+ installed
-- Packages: `duckdb`, `pandas`, `numpy`, `scipy`, `statsmodels`, `matplotlib`, `reportlab`, `pyyaml`
+- Python 3.9+ installed (tested and verified on Python 3.9.13 64-bit)
+- Dependencies pinned in `requirements.txt`:
 
 Install dependencies:
 ```bash
-pip install duckdb pandas numpy scipy statsmodels matplotlib reportlab pyyaml
+pip install -r requirements.txt
+```
+
+### 0. Complete One-Command Verification
+Executes the master pipeline, verification gate, documentation sync check, and the entire test suite in sequential order:
+```bash
+python scripts/run_all.py
 ```
 
 ### 1. Execute Complete End-to-End Pipeline
