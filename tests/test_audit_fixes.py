@@ -276,5 +276,60 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIn("seller_state", code, "Script must include seller_state sensitivity check")
         self.assertIn("HC1", code, "Script must include HC1 sensitivity check")
 
+    def test_d1_guide_files_00_to_04(self):
+        """D1 Acceptance Test: Guide files 00 to 04 exist and contain required sections and concepts."""
+        guide_dir = os.path.join(project_root, "docs", "guide")
+        required_files = [
+            "00_START_HERE.md",
+            "01_CONCEPTS.md",
+            "02_ARCHITECTURE.md",
+            "03_DATA.md",
+            "04_METHODOLOGY.md",
+        ]
+        for fname in required_files:
+            fpath = os.path.join(guide_dir, fname)
+            self.assertTrue(os.path.isfile(fpath), f"Required guide file missing: {fname}")
+
+        # Check 01_CONCEPTS.md for required concepts
+        with open(os.path.join(guide_dir, "01_CONCEPTS.md"), "r", encoding="utf-8") as f:
+            concepts_text = f.read().lower()
+        required_concepts = [
+            "analytical grain",
+            "fan-out",
+            "window function",
+            "percentile tier",
+            "pareto lift",
+            "kruskal",
+            "mann-whitney",
+            "rank-biserial",
+            "logistic regression",
+            "cluster-robust",
+            "association vs causation",
+            "confounder",
+            "mediator",
+            "review-timing",
+            "information set",
+            "right-censoring",
+            "survivorship",
+        ]
+        for c in required_concepts:
+            self.assertIn(c, concepts_text, f"01_CONCEPTS.md missing concept: {c}")
+
+        # Check 02_ARCHITECTURE.md for Mermaid diagram and components
+        with open(os.path.join(guide_dir, "02_ARCHITECTURE.md"), "r", encoding="utf-8") as f:
+            arch_text = f.read()
+        self.assertIn("```mermaid", arch_text, "02_ARCHITECTURE.md must contain a Mermaid diagram")
+
+        # Check 03_DATA.md for schemas and quality
+        with open(os.path.join(guide_dir, "03_DATA.md"), "r", encoding="utf-8") as f:
+            data_text = f.read()
+        self.assertIn("99,441", data_text, "03_DATA.md must contain orders row count 99,441")
+        self.assertIn("112,650", data_text, "03_DATA.md must contain order items row count 112,650")
+
+        # Check 04_METHODOLOGY.md for protocol and falsification
+        with open(os.path.join(guide_dir, "04_METHODOLOGY.md"), "r", encoding="utf-8") as f:
+            meth_text = f.read().lower()
+        self.assertIn("falsif", meth_text, "04_METHODOLOGY.md must detail falsification criteria")
+
 if __name__ == "__main__":
     unittest.main()
