@@ -12,6 +12,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+catboost_info/
+.ipynb_checkpoints/
 
 # Scratch files
 scratch/

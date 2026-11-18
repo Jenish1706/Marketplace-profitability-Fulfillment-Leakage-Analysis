@@ -483,5 +483,24 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIn("Category 5: Superseded", plan_text)
         self.assertIn("Category 6: Audit Transfer Files", plan_text)
 
+    def test_c2_cleanup_execution_and_log(self):
+        """C2 Acceptance Test: CLEANUP_LOG.md exists, superseded docs removed, and gitignore hardened."""
+        log_path = os.path.join(project_root, ".audit", "CLEANUP_LOG.md")
+        self.assertTrue(os.path.isfile(log_path), "CLEANUP_LOG.md must exist")
+        with open(log_path, "r", encoding="utf-8") as f:
+            log_text = f.read()
+        self.assertIn("Total Deletions", log_text)
+        self.assertIn("Total Space Freed", log_text)
+
+        # Confirm superseded docs are no longer present
+        superseded = [
+            "docs/data_lineage.md",
+            "docs/stakeholder_requirements.md",
+            "pipeline/README.md",
+            "data/README.md",
+        ]
+        for s in superseded:
+            self.assertFalse(os.path.exists(os.path.join(project_root, s)), f"Superseded file must be removed: {s}")
+
 if __name__ == "__main__":
     unittest.main()
