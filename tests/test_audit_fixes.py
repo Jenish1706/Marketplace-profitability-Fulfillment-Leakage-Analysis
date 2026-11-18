@@ -472,5 +472,16 @@ class TestAuditFixes(unittest.TestCase):
         res = subprocess.run([sys.executable, os.path.join(project_root, "scripts", "render_readme_tables.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, f"Render check failed: {res.stdout} {res.stderr}")
 
+    def test_c1_cleanup_plan_inventory_complete(self):
+        """C1 Acceptance Test: CLEANUP_PLAN.md exists and inventories all required categories."""
+        plan_path = os.path.join(project_root, ".audit", "CLEANUP_PLAN.md")
+        self.assertTrue(os.path.isfile(plan_path), "CLEANUP_PLAN.md must exist")
+        with open(plan_path, "r", encoding="utf-8") as f:
+            plan_text = f.read()
+        self.assertIn("Category 1: Caches", plan_text)
+        self.assertIn("Category 2: Run Logs", plan_text)
+        self.assertIn("Category 5: Superseded", plan_text)
+        self.assertIn("Category 6: Audit Transfer Files", plan_text)
+
 if __name__ == "__main__":
     unittest.main()
