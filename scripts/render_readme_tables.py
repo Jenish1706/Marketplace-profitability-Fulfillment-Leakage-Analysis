@@ -10,6 +10,10 @@ import argparse
 import duckdb
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from scripts.run_review_econometrics import load_data, fit_models, generate_regression_markdown_table
 
 def get_rendered_blocks(con):
     # 1. Economic Framework Block
@@ -73,10 +77,16 @@ def get_rendered_blocks(con):
         f"- **$N \\ge 50$:** {int(s50['p1_sellers_count'])} P1 sellers, R$ {s50['p1_seller_exposure_total']/1e3:.1f}K seller late exposure"
     )
 
+    # 4. Econometric Regression Table Block (Model B with SE Sensitivities)
+    df_reg = load_data()
+    models = fit_models(df_reg)
+    regression_content = generate_regression_markdown_table(models)
+
     return {
         "ECONOMIC_FRAMEWORK": framework_content,
         "TIER_TABLE": tier_content,
-        "SENSITIVITY_CHECK": sens_content
+        "SENSITIVITY_CHECK": sens_content,
+        "REGRESSION_TABLE": regression_content
     }
 
 def update_readme(check_only=False):

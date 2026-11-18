@@ -141,8 +141,23 @@ Intra-state São Paulo deliveries (SP $\to$ SP) operate efficiently (6.10% late 
 - **Review Timing Confounder (P0-3):** Among late orders, **70.10%** of customer reviews were submitted *before* package arrival (evaluating an order that was on average 3.73 days overdue at survey response, vs 13.82 days overdue at final delivery).
 - **Non-Parametric Tests:** Kruskal-Wallis $H = 10,167.48$ ($p < 10^{-15}$); Mann-Whitney $U$ rank-biserial effect size $r = -0.781$ for $>5$ days late.
 - **Multivariate Econometric Specifications:**
-  - *Model A (Delivery-Date Specification):* Each completed late delivery day increases the odds of a low review by 22.9% ($\text{OR} = 1.229 \text{ per day}, p < 0.001$, $\beta = 0.2060$), evaluated with non-negative delay and seller-state cluster-robust standard errors.
+  - *Model A (Delivery-Date Specification):* Each completed late delivery day increases the odds of a low review by 22.9% ($\text{OR} = 1.229 \text{ per day}, p < 0.001$, $\beta = 0.2060$), evaluated with non-negative delay and seller-level cluster-robust standard errors (`seller_id`, 2,953 clusters; sensitivity-tested against `seller_state` and HC1).
   - *Model B (Customer Information Set at Review Time — P0-3 Resolution):* Formulating the model strictly on what the customer observed at review submission reveals that the **binary unarrived state dominates**: an undelivered shipment at review time increases the odds of a bad review by **33.63×** ($\beta = 3.5153, p < 10^{-15}$), dropping continuous rating by **2.51 stars** ($\beta = -2.5125$). Once unarrived status is controlled for, the marginal per-day overdue effect drops to near-zero ($\text{OR} = 1.004, \beta = 0.0036$). Customer sentiment penalty is triggered by the breach of the promised date window itself (survey prompt on an unarrived parcel), rather than linear daily decay.
+
+<!-- BEGIN_REGRESSION_TABLE -->
+| Dependent Variable | Predictor | Coef (β) | Odds Ratio | Primary SE (seller_id) | Robust SE (seller_state) | Robust SE (HC1) | p-value |
+|---|---|---|---|---|---|---|---|
+| Low Review (≤ 2★) | Undelivered at Review | +3.5153 | 33.63x | 0.0506 | 0.0216 | 0.0377 | < 0.001 |
+| Low Review (≤ 2★) | Days Overdue at Review | +0.0036 | 1.0036 | 0.0008 | 0.0006 | 0.0008 | < 0.001 |
+| Low Review (≤ 2★) | Freight Burden Ratio | +0.6160 | 1.8515 | 0.1013 | 0.0910 | 0.0681 | < 0.001 |
+| Low Review (≤ 2★) | Log Order GMV | +0.2903 | 1.3369 | 0.0353 | 0.0163 | 0.0187 | < 0.001 |
+| Low Review (≤ 2★) | Interstate Route | +0.0623 | 1.0643 | 0.0343 | 0.0134 | 0.0255 | 0.069 |
+| Review Score (1–5) | Undelivered at Review | -2.5125 | — | 0.0252 | 0.0161 | 0.0193 | < 0.001 |
+| Review Score (1–5) | Days Overdue at Review | -0.0013 | — | 0.0005 | 0.0003 | 0.0005 | 0.006 |
+| Review Score (1–5) | Freight Burden Ratio | -0.2486 | — | 0.0501 | 0.0593 | 0.0331 | < 0.001 |
+| Review Score (1–5) | Log Order GMV | -0.0968 | — | 0.0168 | 0.0133 | 0.0083 | < 0.001 |
+| Review Score (1–5) | Interstate Route | -0.0467 | — | 0.0130 | 0.0069 | 0.0092 | < 0.001 |
+<!-- END_REGRESSION_TABLE -->
 
 ---
 

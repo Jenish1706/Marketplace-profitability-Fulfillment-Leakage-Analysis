@@ -252,5 +252,15 @@ class TestAuditFixes(unittest.TestCase):
         res = subprocess.run([sys.executable, os.path.join(project_root, "scripts", "render_readme_tables.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, f"README tables drifted from database artifacts: {res.stdout} {res.stderr}")
 
+    def test_mp01_clustering_variable_and_sensitivities(self):
+        """MP-01 Fix Test: Econometrics script must cluster primarily on seller_id, not seller_state, and include sensitivities."""
+        script_path = os.path.join(project_root, "scripts", "run_review_econometrics.py")
+        with open(script_path, "r", encoding="utf-8") as f:
+            code = f.read()
+        
+        self.assertIn("df_reg['seller_id']", code, "Primary clustering group in run_review_econometrics.py must be seller_id")
+        self.assertIn("seller_state", code, "Script must include seller_state sensitivity check")
+        self.assertIn("HC1", code, "Script must include HC1 sensitivity check")
+
 if __name__ == "__main__":
     unittest.main()
