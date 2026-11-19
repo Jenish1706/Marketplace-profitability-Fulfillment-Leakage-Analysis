@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9.13-green.svg)](requirements.txt)
 [![Documentation](https://img.shields.io/badge/Documentation-Guide%2000--09-orange.svg)](docs/guide/00_START_HERE.md)
 [![Report](https://img.shields.io/badge/Report-Executive%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
-[![Tests](https://img.shields.io/badge/Verification-26%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Verification-30%20Passed-brightgreen.svg)](tests/)
 
 ---
 

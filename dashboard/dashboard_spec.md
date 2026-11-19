@@ -111,30 +111,30 @@ SUM(seller_intervention_scorecard[late_gmv_exposure])
 Late Order Freight Exposure = 
 SUM(seller_intervention_scorecard[late_freight_exposure])
 
-Total Late Transaction Exposure = 
+Total Late-Order Value = 
 SUM(seller_intervention_scorecard[total_late_transaction_exposure])
 
 High Freight GMV Exposure = 
 SUM(seller_intervention_scorecard[high_freight_gmv_exposure])
 ```
 
-### Layer 6: Scenario-Based Recoverable Exposure
+### Layer 6: Scenario-Based Late-Order Mitigation
 ```dax
-Recoverable Exposure Conservative (10%) = 
+Mitigation Conservative (10%) = 
 CALCULATE(
-    [Total Late Transaction Exposure] * 0.10,
+    [Total Late-Order Value] * 0.10,
     dim_seller[priority_tier] = "P1 - Immediate Intervention"
 )
 
-Recoverable Exposure Base (25%) = 
+Mitigation Base (25%) = 
 CALCULATE(
-    [Total Late Transaction Exposure] * 0.25,
+    [Total Late-Order Value] * 0.25,
     dim_seller[priority_tier] = "P1 - Immediate Intervention"
 )
 
-Recoverable Exposure Optimistic (40%) = 
+Mitigation Optimistic (40%) = 
 CALCULATE(
-    [Total Late Transaction Exposure] * 0.40,
+    [Total Late-Order Value] * 0.40,
     dim_seller[priority_tier] = "P1 - Immediate Intervention"
 )
 ```
