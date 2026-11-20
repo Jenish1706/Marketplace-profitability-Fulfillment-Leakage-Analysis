@@ -191,7 +191,7 @@ def sync_all(check_only=False):
         os.path.join(PROJECT_ROOT, "docs", "guide", "01_CONCEPTS.md"),
         os.path.join(PROJECT_ROOT, "docs", "guide", "08_DESIGN_DECISIONS.md"),
         os.path.join(PROJECT_ROOT, "docs", "guide", "09_RESULTS_AND_LIMITATIONS.md"),
-        os.path.join(PROJECT_ROOT, ".audit", "STUDY_GUIDE.md")
+        os.path.join(PROJECT_ROOT, "docs", "interview_prep", "STUDY_GUIDE.md")
     ]
 
     all_passed = True

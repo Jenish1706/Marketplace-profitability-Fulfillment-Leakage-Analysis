@@ -282,7 +282,7 @@ class TestAuditFixes(unittest.TestCase):
         doc_files = glob.glob(os.path.join(project_root, "docs", "**", "*.md"), recursive=True) + \
                     glob.glob(os.path.join(project_root, "report", "*.md")) + \
                     [os.path.join(project_root, "README.md")]
-        study_guide = os.path.join(project_root, ".audit", "STUDY_GUIDE.md")
+        study_guide = os.path.join(project_root, "docs", "interview_prep", "STUDY_GUIDE.md")
         if os.path.isfile(study_guide):
             doc_files.append(study_guide)
 
@@ -411,11 +411,9 @@ class TestAuditFixes(unittest.TestCase):
         readme_text = "".join(lines)
         self.assertIn("docs/guide/00_START_HERE.md", readme_text, "README.md must link to docs/guide/00_START_HERE.md")
 
-        # Study guide checks (private audit files)
-        study_guide_path = os.path.join(project_root, ".audit", "STUDY_GUIDE.md")
-        if not os.path.isdir(os.path.join(project_root, ".audit")):
-            return  # .audit/ is an untracked private directory not present in fresh clone
-        self.assertTrue(os.path.isfile(study_guide_path), "STUDY_GUIDE.md must exist in .audit/")
+        # Study guide checks
+        study_guide_path = os.path.join(project_root, "docs", "interview_prep", "STUDY_GUIDE.md")
+        self.assertTrue(os.path.isfile(study_guide_path), "STUDY_GUIDE.md must exist in docs/interview_prep/")
         with open(study_guide_path, "r", encoding="utf-8") as f:
             sg_text = f.read()
         self.assertIn("60-Second", sg_text)
@@ -424,7 +422,8 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIn("Q25", sg_text, "STUDY_GUIDE.md must contain 25 interview questions")
 
         # Writeup tex checks
-        writeup_tex_path = os.path.join(project_root, ".audit", "WRITEUP.tex")
+        writeup_tex_path = os.path.join(project_root, "docs", "interview_prep", "WRITEUP.tex")
+        self.assertTrue(os.path.isfile(writeup_tex_path), "WRITEUP.tex must exist in docs/interview_prep/")
         with open(writeup_tex_path, "r", encoding="utf-8") as f:
             tex_text = f.read()
         pattern = re.compile(r"recoverable|healthy operational|transaction exposure", re.IGNORECASE)
@@ -450,7 +449,7 @@ class TestAuditFixes(unittest.TestCase):
                 content = f.read()
             for m in link_pattern.finditer(content):
                 link = m.group(2).strip()
-                if link.startswith("http://") or link.startswith("https://") or link.startswith("mailto:") or link.startswith("#"):
+                if link.startswith("http://") or link.startswith("https://") or link.startswith("mailto:") or link.startswith("#") or link.startswith("file:"):
                     continue
                 target_path = link.split("#")[0]
                 if not target_path:
