@@ -236,11 +236,13 @@ $$\text{days\_overdue\_at\_review}_i = \max\left(0, \text{DateDiff}(t_{\text{est
 - **Model A (Conventional / Forward-Looking):**
   $$\text{logit}(p_i) = \beta_0 + \beta_1 \cdot \text{delay\_days\_late}_i + \beta_2 \cdot \ln(\text{price}_i) + \beta_3 \cdot \text{freight\_ratio}_i$$
   Yields $\text{OR} = 1.229$ per day late ($p < 0.001$).
+<!-- BEGIN_MODEL_B_CONCEPTS -->
 - **Model B (Information Set at Review Time):**
   $$\text{logit}(p_i) = \gamma_0 + \gamma_1 \cdot \text{undelivered\_at\_review}_i + \gamma_2 \cdot \text{days\_overdue\_at\_review}_i + \gamma_3 \cdot \ln(\text{price}_i) + \gamma_4 \cdot \text{freight\_ratio}_i$$
-  Yields $\text{OR} = 33.63\times$ ($p < 10^{-15}$) for $\text{undelivered\_at\_review}$, while $\gamma_2$ drops to $\text{OR} = 1.004$ ($p = 0.52$).
+  Yields $\text{OR} = 33.63\times$ ($p < 10^{-15}$) for $\text{undelivered\_at\_review}$, while $\gamma_2$ is economically small: $\text{OR} = 1.0036$ per day overdue ($p < 0.001$, $z = 4.65$, $\text{SE} = 0.0008$). A 30-day overdue delay increases odds by only $1.11\times$, compared to $33.63\times$ for non-receipt at review time.
 
-Conclusion: Customer dissatisfaction is driven by the **binary non-receipt event** at the promised date, not by marginal daily delays.
+Conclusion: Customer dissatisfaction is driven by the **binary non-receipt event** at the promised date (an immediate step-function penalty), while subsequent overdue days have an economically small incremental effect.
+<!-- END_MODEL_B_CONCEPTS -->
 
 ### Tiny Worked Example
 Order `ORD-202`:

@@ -276,6 +276,24 @@ class TestAuditFixes(unittest.TestCase):
         self.assertIn("seller_state", code, "Script must include seller_state sensitivity check")
         self.assertIn("HC1", code, "Script must include HC1 sensitivity check")
 
+    def test_mp08_overdue_days_not_null_and_rendered(self):
+        """MP-08 Fix Test: Overdue-day effect must not be called null or p=0.52; numbers rendered from script."""
+        import glob
+        doc_files = glob.glob(os.path.join(project_root, "docs", "**", "*.md"), recursive=True) + \
+                    glob.glob(os.path.join(project_root, "report", "*.md")) + \
+                    [os.path.join(project_root, "README.md")]
+        study_guide = os.path.join(project_root, ".audit", "STUDY_GUIDE.md")
+        if os.path.isfile(study_guide):
+            doc_files.append(study_guide)
+
+        for fpath in doc_files:
+            with open(fpath, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertNotIn("p = 0.52", content, f"Forbidden 'p = 0.52' found in {os.path.relpath(fpath, project_root)}")
+            self.assertNotIn("p=0.52", content, f"Forbidden 'p=0.52' found in {os.path.relpath(fpath, project_root)}")
+            self.assertNotIn("Null Finding on Marginal Overdue", content, f"Overdue delay incorrectly classified as null in {os.path.relpath(fpath, project_root)}")
+            self.assertNotIn("statistically indistinguishable from zero", content.lower(), f"Overdue effect called indistinguishable from zero in {os.path.relpath(fpath, project_root)}")
+
     def test_d1_guide_files_00_to_04(self):
         """D1 Acceptance Test: Guide files 00 to 04 exist and contain required sections and concepts."""
         guide_dir = os.path.join(project_root, "docs", "guide")

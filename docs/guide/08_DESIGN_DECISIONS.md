@@ -57,7 +57,9 @@
 - **Alternatives Considered:**
   - *Model A (Final Delivery Delay):* Shows an odds ratio of 1.229 per day late, but obscures the underlying survey dispatch mechanism.
   - *Excluding Pre-Delivery Reviews:* Rejected because discarding 70.10% of late reviews would induce catastrophic selection bias.
-- **Consequences:** Proves customer dissatisfaction is driven by the binary promise breach (`undelivered_at_review`, $\text{OR} = 33.63\times, p < 10^{-15}$), while marginal delay days have virtually zero incremental effect ($\text{OR} = 1.004$).
+<!-- BEGIN_MODEL_B_ADR -->
+- **Consequences:** Proves customer dissatisfaction is driven by the binary promise breach (`undelivered_at_review`, $\text{OR} = 33.63\times, p < 10^{-15}$), while marginal delay days have an economically small effect ($\text{OR} = 1.0036$ per day, $p < 0.001$, $z = 4.65$; 30 days overdue yields only $\sim 1.11\times$ vs $33.63\times$ for non-arrival).
+<!-- END_MODEL_B_ADR -->
 
 ---
 

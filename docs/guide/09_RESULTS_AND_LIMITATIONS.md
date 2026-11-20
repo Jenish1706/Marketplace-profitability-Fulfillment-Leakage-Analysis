@@ -27,7 +27,9 @@ All findings are derived directly from reproducible SQL views and statistical sc
 
 Documenting what was *not* supported by data is essential for executive decision-making:
 
-1. **Null Finding on Marginal Overdue Delay:** In Model B (conditioning on information set at survey submission), the coefficient on marginal days overdue after dispatch is statistically indistinguishable from zero ($\text{OR} = 1.004, p = 0.52$). Customer dissatisfaction is an immediate step-function penalty triggered on Day 0 of promise breach, not a daily compounding penalty.
+<!-- BEGIN_MODEL_B_RESULTS -->
+1. **Economically Negligible Marginal Overdue Delay (Step-Function Discontinuity):** In Model B (conditioning on information set at survey submission), the coefficient on marginal days overdue after dispatch is statistically significant ($p < 0.001, z = 4.65$) but economically small ($\text{OR} = 1.0036$ per day, $\text{SE} = 0.0008$; 30 days overdue increases odds by only $1.11\times$ vs $33.63\times$ for non-receipt). Customer dissatisfaction is an immediate step-function penalty triggered on Day 0 of promise breach, refuting the hypothesis of linear daily compounding decay.
+<!-- END_MODEL_B_RESULTS -->
 2. **Negative Finding on Merchant Responsibility:** Merchant dispatch delays do not account for the majority of delivery failures. Attributing 100% of failure to sellers is soundly refuted by data (sellers dispatched on time in 72.25% of late orders).
 3. **Negative Finding on Intra-State Logistics:** Intra-state delivery within São Paulo (SP $\to$ SP) is not the driver of platform logistics strain. SP $\to$ SP maintains a healthy 6.10% late rate and 13.21% freight burden. Platform logistics failure is overwhelmingly concentrated in long-haul interstate corridors (e.g. SP $\to$ RJ: 14.85% late rate, R\$ 197K in late value).
 
