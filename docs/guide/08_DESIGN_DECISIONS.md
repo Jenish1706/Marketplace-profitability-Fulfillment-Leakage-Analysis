@@ -106,12 +106,12 @@
 ---
 
 ### ADR-09: 2017 $\to$ 2018 Temporal Holdout Persistence Validation
-- **Context:** Tiering sellers on the entire historical dataset simultaneously introduces look-ahead bias: did P1 sellers experience bad luck during peak seasons, or are they chronically deficient?
-- **Decision:** Formalize a temporal holdout check (`view_seller_persistence_check`) tiering merchants solely on 2017 data and evaluating their performance out-of-sample across 2018.
+- **Context:** Tiering sellers on the entire historical dataset simultaneously introduces look-ahead bias: did P1 sellers experience bad luck during peak seasons, or does their excess carry over to a later year?
+- **Decision:** Formalize a temporal holdout check (`view_seller_persistence_check`) tiering merchants solely on 2017 data with the same tier rule as the headline (`view_seller_tiers_by_period`) and evaluating their seller-caused lateness out-of-sample across 2018 with seller-level bootstrap intervals.
 - **Alternatives Considered:**
   - *Cross-Sectional Evaluation:* Evaluates in-sample performance only, vulnerable to overfitting.
   - *Random Train-Test Split:* Ignores the temporal arrow of time in operations.
-- **Consequences:** Proves persistence: 2017 P1 merchants maintained an out-of-sample late rate of 13.05% in 2018 (vs 8.60% for others), with 54.17% exceeding baseline, validating chronic merchant behavior.
+- **Consequences:** Shows partial persistence: the 2017 P1 cohort's seller-caused excess shrinks but stays positive in 2018 (rates and intervals in guide 09). Part of the shrinkage is regression to the mean from selecting on a high year, so P1 is used as a prioritisation list, not as proof of a fixed seller trait. An earlier version of this check used a looser cohort rule and an all-cause outcome and overstated persistence; it was replaced (MP-06).
 
 ---
 

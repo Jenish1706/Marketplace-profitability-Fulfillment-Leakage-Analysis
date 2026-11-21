@@ -20,7 +20,7 @@ Rather than treating e-commerce datasets as generic Kaggle machine learning exer
 2. **Attribution & Handover Decoupling:** Are delivery delays caused by merchant handling delays (seller dispatch SLA) or third-party carrier line-haul transit bottlenecks (3PL freight networks)?
 3. **Customer Sentiment Econometrics:** Does delivery delay cause a linear decay in customer review scores, or does the automated survey mechanism introduce an information-set confounder?
 4. **Concentration & Commercial Lift:** Are late orders distributed evenly, or do high-volume merchants generate disproportionate fulfillment friction above their GMV share (Pareto concentration lift)?
-5. **Persistence & Intervention Targeting:** Can we isolate a defensible priority tier (P1) of chronic high-friction merchants, and do their fulfillment deficits persist out-of-sample across calendar years?
+5. **Persistence & Intervention Targeting:** Can we isolate a defensible priority tier (P1) of high-friction merchants, and how much of their seller-caused excess carries over from 2017 to 2018?
 
 ---
 
@@ -38,7 +38,7 @@ All metrics below are derived directly from committed analytical artifacts and S
 | **Pareto Concentration Lift** | Decile 1 (top 10% sellers) generates 60.78% of GMV but 77.38% of late exposure (**1.27× concentration lift**). | [`sql/06_pareto_analysis.sql`](../../sql/06_pareto_analysis.sql) |
 | **P1 Priority Cohort** | **113 merchants** ($N \ge 30$) account for **R$ 181,377.55** in seller-caused late exposure (48.85% of platform total). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **Illustrative Mitigation** | Under an assumed 25% operational mitigation rate, P1 addressable late-order exposure is **R$ 45,344.39**. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
-| **Out-of-Sample Persistence** | 2017 P1 sellers exhibited a **13.05% late rate in 2018** (vs 8.60% for non-P1). 54.17% exceeded the baseline; 87.50% had late orders. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
+| **Out-of-Sample Persistence** | Partial persistence: sellers the headline tier rule flags using 2017 orders only still ran above other sellers on seller-caused lateness in 2018, but the gap shrank sharply. Rates and bootstrap intervals are in [guide 09](09_RESULTS_AND_LIMITATIONS.md). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **Review Survey Mechanism** | **70.10% of late-order reviews** were submitted *before* package arrival. Package non-receipt (`undelivered_at_review`) drives an **Odds Ratio of 33.63×** ($p < 10^{-15}$, cluster-robust SE on `seller_id`), proving a step-function promise breach rather than linear daily decay. | [`scripts/run_review_econometrics.py`](../../scripts/run_review_econometrics.py) |
 
 ### Key Deliverables & Artifacts
@@ -93,6 +93,6 @@ python scripts/run_all.py
 1. **Pipeline Execution (`pipeline/run_pipeline.py`):** Ingests raw CSVs, builds staging tables, runs SQL transformations `01_schema.sql` through `07_intervention_priority.sql`, logs row counts and financial invariants.
 2. **Pipeline Verification Gate (`tests/verify_pipeline.py`):** Runs 7 automated assertions on primary key uniqueness, foreign key integrity, non-negative amounts, and bounded rates.
 3. **Documentation Drift Check (`scripts/render_readme_tables.py --check`):** Queries DuckDB views directly and confirms that the dynamic tables in `README.md` and `report/decision_memo.md` match database ground truth.
-4. **Pytest Regression Suite (`pytest`):** Runs all 25 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
+4. **Pytest Regression Suite (`pytest`):** Runs all 34 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
 
 Execution typically completes in 45–50 seconds on modern hardware with 100% green exit code 0.

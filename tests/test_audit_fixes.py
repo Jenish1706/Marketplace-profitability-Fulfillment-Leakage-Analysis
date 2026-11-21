@@ -172,30 +172,103 @@ class TestAuditFixes(unittest.TestCase):
         self.assertAlmostEqual(exp_share, 77.38, places=1)
         self.assertAlmostEqual(lift, 1.27, places=1)
 
-    def test_p17_temporal_chronic_split(self):
-        """P1-7 Fix Test: Verify out-of-sample persistence of 2017 P1 sellers into 2018."""
-        q = "SELECT tier_2017, avg_late_rate_2018 FROM view_seller_persistence_check"
-        rates = dict(self.con.execute(q).fetchall())
-        self.assertAlmostEqual(rates['P1_2017'], 13.05, delta=0.5, msg="2017 P1 sellers should maintain ~13% late rate in 2018")
-        self.assertAlmostEqual(rates['Other_2017'], 8.60, delta=0.5, msg="Other sellers should maintain ~8.6% late rate in 2018")
-        self.assertGreater(rates['P1_2017'], rates['Other_2017'], "P1 sellers must show persistent higher lateness out-of-sample")
+    def test_p17_temporal_persistence_split(self):
+        """P1-7 / MP-06: the 2017 P1 cohort (same tier rule as the headline) keeps a positive seller-caused gap in 2018, smaller than in 2017."""
+        df = self.con.execute("SELECT * FROM view_seller_persistence_check").df().set_index("tier_2017")
+        p1, other = df.loc["P1_2017"], df.loc["Other_2017"]
+        gap_2017 = p1["seller_late_rate_2017"] - other["seller_late_rate_2017"]
+        gap_2018 = p1["seller_late_rate_2018"] - other["seller_late_rate_2018"]
+        self.assertGreater(p1["sellers_active_both_years"], 0)
+        self.assertGreater(gap_2017, 0, "2017 P1 sellers were selected on a high seller-caused late rate")
+        self.assertGreater(gap_2018, 0, "some of the P1 excess should carry over into 2018")
+        self.assertLess(gap_2018, gap_2017, "the gap shrinks out of sample (selection on a high year)")
 
     def test_mp03_persistence_result_rendered(self):
-        """MP-03 Fix Test: Verify persistence result is rendered into README and decision memo from view."""
-        row_p1 = self.con.execute("SELECT * FROM view_seller_persistence_check WHERE tier_2017 = 'P1_2017'").df().iloc[0]
-        
-        # Check README
-        with open(os.path.join(project_root, "README.md"), "r", encoding="utf-8") as f:
-            readme_text = f.read()
-        self.assertIn(f"{row_p1['avg_late_rate_2018']:.2f}%", readme_text)
-        self.assertIn(f"{row_p1['pct_above_base_rate']:.2f}%", readme_text)
-        self.assertIn("BEGIN_PERSISTENCE_CHECK", readme_text)
+        """MP-03 / MP-06: the persistence block in README, memo and guide 09 equals the freshly rendered block (no hand-typed numbers)."""
+        from scripts.run_persistence_check import render_persistence_markdown
 
-        # Check Decision Memo
-        with open(os.path.join(project_root, "report", "decision_memo.md"), "r", encoding="utf-8") as f:
-            memo_text = f.read()
-        self.assertIn(f"{row_p1['avg_late_rate_2018']:.2f}%", memo_text)
-        self.assertIn("BEGIN_PERSISTENCE_CHECK", memo_text)
+        rendered = render_persistence_markdown(self.con)
+        for rel in ("README.md", os.path.join("report", "decision_memo.md"),
+                    os.path.join("docs", "guide", "09_RESULTS_AND_LIMITATIONS.md")):
+            with open(os.path.join(project_root, rel), "r", encoding="utf-8") as f:
+                text = f.read()
+            self.assertIn("BEGIN_PERSISTENCE_CHECK", text, f"missing persistence markers in {rel}")
+            self.assertIn(rendered, text, f"persistence block in {rel} is stale; run scripts/render_readme_tables.py")
+
+    def test_mp06_persistence_cohort_uses_headline_tier_rule(self):
+        """MP-06: one tier rule. The headline matrix and the 2017 cohort read the same view, and the whole-dataset period reproduces the headline tiers."""
+        import re
+
+        with open(os.path.join(project_root, "sql", "07_intervention_priority.sql"), "r", encoding="utf-8") as f:
+            sql = f.read()
+        self.assertEqual(sql.count("THEN 'P1 - Immediate Intervention'"), 1,
+                         "the P1 tier rule must be defined exactly once in SQL")
+        matrix = re.search(r"CREATE OR REPLACE VIEW view_seller_intervention_matrix AS(.*?);", sql, re.S).group(1)
+        detail = re.search(r"CREATE OR REPLACE VIEW view_seller_persistence_detail AS(.*?);", sql, re.S).group(1)
+        self.assertIn("view_seller_tiers_by_period", matrix)
+        self.assertIn("view_seller_tiers_by_period", detail)
+        self.assertNotIn("PERCENTILE_CONT", detail, "the persistence cohort must not compute its own thresholds")
+
+        # Data parity: whole-dataset period == headline matrix == root-cause metrics
+        mismatched = self.con.execute("""
+            SELECT COUNT(*) FROM view_seller_intervention_matrix m
+            JOIN view_seller_tiers_by_period t ON t.period = 'ALL' AND t.seller_id = m.seller_id
+            WHERE m.priority_tier <> t.priority_tier""").fetchone()[0]
+        self.assertEqual(mismatched, 0)
+        metric_diffs = self.con.execute("""
+            SELECT COUNT(*) FROM view_seller_period_metrics p
+            JOIN view_seller_root_cause r USING (seller_id)
+            WHERE p.period = 'ALL' AND (p.total_orders <> r.total_orders
+               OR p.seller_late_exposure <> r.seller_late_exposure
+               OR p.seller_late_item_rate_pct IS DISTINCT FROM r.seller_late_item_rate_pct
+               OR p.freight_burden_pct IS DISTINCT FROM r.freight_burden_pct)""").fetchone()[0]
+        self.assertEqual(metric_diffs, 0, "period metrics must reproduce view_seller_root_cause for the whole dataset")
+
+        # The 2017 persistence cohort is exactly the P1 set of the shared view for period 2017
+        bad_cohort = self.con.execute("""
+            SELECT COUNT(*) FROM view_seller_persistence_detail d
+            JOIN view_seller_tiers_by_period t ON t.period = '2017' AND t.seller_id = d.seller_id
+            WHERE (t.priority_tier = 'P1 - Immediate Intervention') <> (d.tier_2017 = 'P1_2017')""").fetchone()[0]
+        self.assertEqual(bad_cohort, 0)
+
+        # The refactor left the headline tiers unchanged
+        counts = dict(self.con.execute("SELECT priority_tier, seller_count FROM view_intervention_tier_summary").fetchall())
+        self.assertEqual(counts["P1 - Immediate Intervention"], 113)
+
+    def test_mp06_persistence_bootstrap_is_reproducible(self):
+        """MP-06: seller-level bootstrap with at least 2,000 resamples, deterministic, and bracketing its point estimates."""
+        from scripts.run_persistence_check import N_BOOT, bootstrap_persistence, load_detail
+
+        self.assertGreaterEqual(N_BOOT, 2000)
+        detail = load_detail(self.con)
+        first = bootstrap_persistence(detail)
+        second = bootstrap_persistence(detail)
+        self.assertEqual(first, second, "a fixed seed must make the bootstrap deterministic")
+        for outcome in ("seller", "all"):
+            r = first[outcome]
+            for point, interval in (("gap_2017", "gap_2017_ci"), ("gap_2018", "gap_2018_ci"),
+                                    ("gap_change", "gap_change_ci")):
+                lo, hi = r[interval]
+                self.assertLessEqual(lo, r[point], f"{outcome} {point} below its interval")
+                self.assertLessEqual(r[point], hi, f"{outcome} {point} above its interval")
+
+    def test_mp06_no_unsupported_persistence_claims(self):
+        """MP-06: public docs must not call seller friction a fixed trait or quote the retired baseline figure."""
+        import glob
+
+        files = (glob.glob(os.path.join(project_root, "docs", "**", "*.md"), recursive=True)
+                 + glob.glob(os.path.join(project_root, "report", "*.md"))
+                 + [os.path.join(project_root, "README.md")])
+        retired = ("chronic", "structural merchant", "structural operational", "structural dispatch",
+                   "structural and persistent")
+        for fpath in files:
+            with open(fpath, "r", encoding="utf-8") as f:
+                content = f.read()
+            rel = os.path.relpath(fpath, project_root)
+            low = content.lower()
+            for phrase in retired:
+                self.assertFalse(phrase in low, f"retired persistence wording {phrase!r} found in {rel}")
+            self.assertFalse("8.60%" in content, f"retired baseline figure found in {rel}")
 
     def test_mp04_snapshot_formatting(self):
         """MP-04 Fix Test: Verify pipeline logger formats base_mitigation_25pct as currency R$, not %."""

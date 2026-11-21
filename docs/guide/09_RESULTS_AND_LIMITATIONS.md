@@ -17,7 +17,7 @@ All findings are derived directly from reproducible SQL views and statistical sc
 | **RES-03** | Logistics Fulfillment Attribution | **72.25% Carrier-Caused** ($4,730 / 6,547$ late items, R\$ 779,610.99); **27.75% Seller-Caused** ($1,817 / 6,547$ items, R\$ 371,281.14). | [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) |
 | **RES-04** | Pareto Decile 1 Concentration Lift | **60.78% GMV share** vs **77.38% late exposure share** $\implies$ **1.27× concentration lift** across top 310 merchants. | [`sql/06_pareto_analysis.sql`](../../sql/06_pareto_analysis.sql) |
 | **RES-05** | P1 Intervention Priority Cohort | **113 merchants** account for **R\$ 181,377.55** in seller late exposure (48.85% of platform seller exposure). Modeled addressable exposure: **R\$ 45,344.39** (Base 25%). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
-| **RES-06** | Out-of-Sample Holdout Persistence | Active 2017 P1 sellers repeat a **13.05% late rate in 2018** (vs 8.60% for non-P1); **54.17%** exceed baseline and **87.50%** record late orders. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
+| **RES-06** | Out-of-Sample Holdout Persistence | Partial persistence: the 2017 P1 cohort's seller-caused excess shrinks but stays positive in 2018. Rates, gaps and bootstrap intervals are rendered in Section 2 below. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **RES-07** | Review Survey Mechanism Confounder | **70.10%** of late-order reviews were submitted before delivery ($3.73$ days late at survey vs $13.82$ days at delivery). | [`scripts/run_review_econometrics.py`](../../scripts/run_review_econometrics.py) |
 | **RES-08** | Non-Receipt Econometric Penalty | Binary non-receipt at survey (`undelivered_at_review`) yields $\text{OR} = \mathbf{33.63\times}$ ($p < 10^{-15}$, cluster-robust $\text{SE} = 0.0506$) and OLS rating drop of $\mathbf{-2.5125\text{ stars}}$ ($\text{SE} = 0.0252$). | [`scripts/run_review_econometrics.py`](../../scripts/run_review_econometrics.py) |
 
@@ -30,6 +30,27 @@ Documenting what was *not* supported by data is essential for executive decision
 <!-- BEGIN_MODEL_B_RESULTS -->
 1. **Economically Negligible Marginal Overdue Delay (Step-Function Discontinuity):** In Model B (conditioning on information set at survey submission), the coefficient on marginal days overdue after dispatch is statistically significant ($p < 0.001, z = 4.65$) but economically small ($\text{OR} = 1.0036$ per day, $\text{SE} = 0.0008$; 30 days overdue increases odds by only $1.11\times$ vs $33.63\times$ for non-receipt). Customer dissatisfaction is an immediate step-function penalty triggered on Day 0 of promise breach, refuting the hypothesis of linear daily compounding decay.
 <!-- END_MODEL_B_RESULTS -->
+
+The persistence of the P1 tier is also only partly supported. Applying the headline tier rule to 2017 orders alone and following those sellers into 2018 gives:
+
+<!-- BEGIN_PERSISTENCE_CHECK -->
+### Out-of-Sample Persistence Check (2017 → 2018)
+
+The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, applied to 2017 orders only (`view_seller_tiers_by_period`). Rates are item-level (late items ÷ delivered items), pooled over sellers active in both years; gaps are computed from unrounded rates. Intervals are 95% seller-level bootstrap percentile intervals (5,000 resamples, fixed seed).
+
+| Outcome | Cohort | 2017 | 2018 | Change |
+|---|---|---|---|---|
+| Seller-caused late rate (primary) | 2017 P1 sellers (n = 52) | 4.99% | 2.97% | -2.02 pts |
+| | All other sellers (n = 1,023) | 0.97% | 1.54% | +0.57 pts |
+| | **Gap (P1 − other)** | 4.02 pts | **1.44 pts** [0.54, 2.77] | **-2.59 pts** [-4.78, -1.01] |
+| All-cause late rate (secondary) | 2017 P1 sellers (n = 52) | 9.17% | 8.26% | -0.91 pts |
+| | All other sellers (n = 1,023) | 4.68% | 7.75% | +3.06 pts |
+| | **Gap (P1 − other)** | 4.49 pts | **0.51 pts** [-0.86, 2.14] | **-3.98 pts** [-6.04, -2.18] |
+
+**Reading:** the seller-caused gap between 2017 P1 sellers and other sellers was 4.02 pts in 2017 and 1.44 pts in 2018, which is still positive (its interval excludes zero); the change of -2.59 pts is a decrease whose interval excludes zero. About 36% of the 2017 gap remains in 2018. Part of the P1 excess therefore persists, but most of it does not carry over. Shrinkage of this kind is what selecting sellers on a high 2017 rate produces even when underlying performance is stable (regression to the mean), and this check cannot separate that from genuine improvement. The P1 tier is a prioritisation list for review, not evidence that these sellers have a fixed trait.
+
+*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and the all-cause outcome also counts carrier and promise-setting delay that sellers do not control.
+<!-- END_PERSISTENCE_CHECK -->
 2. **Negative Finding on Merchant Responsibility:** Merchant dispatch delays do not account for the majority of delivery failures. Attributing 100% of failure to sellers is soundly refuted by data (sellers dispatched on time in 72.25% of late orders).
 3. **Negative Finding on Intra-State Logistics:** Intra-state delivery within São Paulo (SP $\to$ SP) is not the driver of platform logistics strain. SP $\to$ SP maintains a healthy 6.10% late rate and 13.21% freight burden. Platform logistics failure is overwhelmingly concentrated in long-haul interstate corridors (e.g. SP $\to$ RJ: 14.85% late rate, R\$ 197K in late value).
 

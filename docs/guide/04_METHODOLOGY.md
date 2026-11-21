@@ -19,7 +19,8 @@ The analytical methodology divides the dataset into distinct observational windo
 3. **Temporal Holdout Persistence Split (2017 $\to$ 2018):**
    - **Training / Selection Window (2017):** Merchants evaluated solely on 2017 transactions to assign initial P1 priority tier.
    - **Evaluation / Holdout Window (2018):** Tracks the 2018 fulfillment performance of active 2017 P1 merchants without re-fitting tiers.
-   - Purpose: Falsify whether P1 classification reflects transient bad luck or chronic operational deficiency.
+   - Cohort rule: the identical tier rule as the headline (`view_seller_tiers_by_period`, period 2017), not a separate copy.
+   - Purpose: Measure how much of the P1 seller-caused excess carries over to a later year, with seller-level bootstrap intervals (guide 09). Shrinkage is expected from selecting on a high year (regression to the mean), so it is not by itself evidence of improvement or of a fixed seller trait.
 
 ---
 
@@ -88,6 +89,6 @@ To maintain scientific integrity, every core finding in this repository is paire
 | **Falsification 1: Date-Level SLA Baseline** | Platform late delivery rate is 6.77% (6,534 orders). | Finding that calendar date casting misclassifies legitimate courier delivery cutoffs, or finding timestamp-level delivery receipts that prove after-hours delivery failure on the promised date. |
 | **Falsification 2: Carrier vs Seller Attribution** | 72.25% of late orders were handed over to carriers on time (carrier-dominated). | Discovering that sellers routinely forged shipping handover timestamps (e.g., manifest pre-scanning without physical parcel handover), shifting true dispatch delay to carrier transit duration. |
 | **Falsification 3: Pareto Concentration Lift** | Decile 1 sellers produce 1.27× excess late exposure relative to GMV share. | Finding that Decile 1 exposure share drops to or below its GMV share ($60.78\%$) when controlling for product category mix or order item counts. |
-| **Falsification 4: Temporal Persistence** | High-friction seller performance is chronic (2017 P1 sellers repeat 13.05% late rate in 2018). | Finding that out-of-sample 2018 late rates for 2017 P1 merchants regress completely to the platform mean (8.60%), indicating transient variance rather than structural merchant friction. |
+| **Falsification 4: Temporal Persistence** | The seller-caused excess of 2017 P1 sellers carries over to 2018. | Finding that the 2018 seller-caused gap between 2017 P1 sellers and other sellers has a bootstrap interval that includes zero. Result (guide 09): the gap shrinks but its interval stays above zero, so the claim survives in weakened form (some persistence, not a fixed seller trait). |
 | **Falsification 5: Review Survey Confounder** | Dissatisfaction is driven by binary non-receipt ($OR = 33.63\times$), not marginal delay days. | Finding that after controlling for automated email timing, the coefficient on marginal overdue days remains large, positive, and statistically significant ($\beta > 0.10, p < 0.01$). |
 | **Falsification 6: P1 Economic Framing** | Addressable P1 exposure is R\$ 45,344.39 under an assumed 25% mitigation scenario. | Claiming that R\$ 45,344.39 is "recovered cash", which would be falsified by the fact that historical Kaggle data cannot execute live interventions or collect incremental cash. |

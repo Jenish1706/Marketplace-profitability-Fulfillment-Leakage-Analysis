@@ -66,7 +66,10 @@ Verifies statistical methodologies and prevents recurrence of resolved audit def
 - `test_p04_three_level_exposure_framework`: Verifies Level 1, Level 2, and Level 3 exposure metrics reconcile to DuckDB views.
 - `test_p15_econometric_discrepancies`: Verifies non-negative delay formulation and exact DuckDB test statistics.
 - `test_p16_pareto_concentration_lift`: Asserts Decile 1 accounts for 60.78% GMV, 77.38% late exposure, and 1.27× lift.
-- `test_p17_temporal_chronic_split`: Validates 2017 $\to$ 2018 holdout persistence (54.17% exceed baseline, 13.05% late rate).
+- `test_p17_temporal_persistence_split`: Validates the 2017 $\to$ 2018 holdout: the 2017 P1 cohort still has a positive seller-caused gap in 2018, and the gap is smaller than in 2017.
+- `test_mp06_persistence_cohort_uses_headline_tier_rule`: Asserts the tier rule exists once in SQL, the headline matrix and the 2017 cohort both read it, and the whole-dataset period reproduces the headline tiers.
+- `test_mp06_persistence_bootstrap_is_reproducible`: Asserts the seller-level bootstrap uses at least 2,000 resamples, is deterministic, and brackets its point estimates.
+- `test_mp06_no_unsupported_persistence_claims`: Fails if public docs use the retired persistence wording or quote the retired baseline figure.
 - `test_p18_tier_naming_and_documentation`: Asserts P4 is labeled "P4 - Low Volume / Not Prioritised".
 - `test_open_lead1_unfulfilled_orders_breakdown`: Quantifies 2,963 unfulfilled orders.
 - `test_mp01_clustering_variable_and_sensitivities`: Asserts econometrics script clusters primarily on `seller_id` (2,953 clusters) and includes `seller_state` and `HC1` sensitivities.

@@ -8,92 +8,127 @@
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
--- 1. SELLER INTERVENTION PRIORITIZATION VIEW
+-- 1. SELLER PERIOD METRICS, THE SINGLE TIER RULE, AND THE HEADLINE MATRIX
+-- view_seller_period_metrics builds the seller metrics the tier rule needs for
+-- each period ('ALL' = whole dataset, '2017', '2018'), with the same definitions
+-- as view_seller_root_cause (item-level rates; seller-caused exposure = item price
+-- plus freight on seller-caused late items). view_seller_tiers_by_period applies
+-- the P1-P4 rule once, with percentile benchmarks computed inside each period.
+-- The headline matrix (period 'ALL') and the 2017 -> 2018 persistence check
+-- (period '2017') both read their tiers from that one view: the rule is not copied.
 -- ----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW view_seller_intervention_matrix AS
+CREATE OR REPLACE VIEW view_seller_period_metrics AS
+WITH period_items AS (
+    SELECT 'ALL' AS period, * FROM fact_order_items
+    UNION ALL
+    SELECT '2017' AS period, * FROM fact_order_items WHERE year(order_purchase_timestamp) = 2017
+    UNION ALL
+    SELECT '2018' AS period, * FROM fact_order_items WHERE year(order_purchase_timestamp) = 2018
+)
+SELECT
+    period,
+    seller_id,
+    COUNT(DISTINCT order_id) AS total_orders,
+    CASE WHEN COUNT(DISTINCT order_id) >= 30 THEN 1 ELSE 0 END AS meets_min_volume_30,
+    SUM(CASE WHEN is_delivered = 1 THEN 1 ELSE 0 END) AS delivered_items,
+    SUM(CASE WHEN is_late = 1 THEN 1 ELSE 0 END) AS late_items,
+    SUM(CASE WHEN is_seller_caused_late = 1 THEN 1 ELSE 0 END) AS seller_late_items,
+    ROUND(100.0 * SUM(CASE WHEN is_seller_caused_late = 1 THEN 1 ELSE 0 END) /
+          NULLIF(SUM(CASE WHEN is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS seller_late_item_rate_pct,
+    ROUND(100.0 * SUM(freight_value) / NULLIF(SUM(item_price), 0), 2) AS freight_burden_pct,
+    ROUND(SUM(CASE WHEN is_seller_caused_late = 1 THEN item_price + freight_value ELSE 0 END), 2) AS seller_late_exposure
+FROM period_items
+GROUP BY period, seller_id;
+
+CREATE OR REPLACE VIEW view_seller_tiers_by_period AS
 WITH qualified_seller_benchmarks AS (
-    -- Compute percentile thresholds exclusively across operational sellers (N >= 30)
-    -- Using seller-caused late exposure and seller dispatch late rate (P0-2)
-    SELECT 
+    -- Percentile thresholds exclusively across operational sellers (N >= 30), per period
+    SELECT
+        period,
         PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY seller_late_exposure) AS exp_p75,
         PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY seller_late_exposure) AS exp_p50,
         PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY seller_late_item_rate_pct) AS late_p75,
         PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY seller_late_item_rate_pct) AS late_p50,
         PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY freight_burden_pct) AS freight_p75
-    FROM view_seller_root_cause
+    FROM view_seller_period_metrics
     WHERE total_orders >= 30
-),
-classified_sellers AS (
-    SELECT 
-        s.seller_id,
-        s.seller_state,
-        s.seller_city,
-        s.total_orders,
-        s.total_items,
-        s.gmv,
-        s.seller_aov,
-        s.late_items,
-        s.late_item_rate_pct,
-        s.seller_late_items,
-        s.seller_late_item_rate_pct,
-        s.carrier_late_items,
-        s.carrier_late_item_rate_pct,
-        s.avg_delay_days_late_items,
-        s.freight_burden_pct,
-        s.avg_review_score,
-        s.low_review_rate_pct,
-        s.total_late_transaction_exposure,
-        s.seller_late_exposure,
-        s.carrier_late_exposure,
-        s.high_freight_gmv_exposure,
-        s.meets_min_volume_30,
-        
-        -- Deterministic Percentile Tier Rules (P0-2: Evaluates seller-caused friction)
-        CASE 
-            -- P1: High Volume + High Seller Exposure (>= 75th) + High Severity (>= 75th)
-            WHEN s.meets_min_volume_30 = 1 
-             AND s.seller_late_exposure >= b.exp_p75 
-             AND (s.seller_late_item_rate_pct >= b.late_p75 OR s.freight_burden_pct >= b.freight_p75) 
-            THEN 'P1 - Immediate Intervention'
-            
-            -- P2: High Volume + Either High Seller Exposure OR High Severity
-            WHEN s.meets_min_volume_30 = 1 
-             AND (s.seller_late_exposure >= b.exp_p75 
-                  OR s.seller_late_item_rate_pct >= b.late_p75 
-                  OR s.freight_burden_pct >= b.freight_p75)
-            THEN 'P2 - Operational Investigation'
-            
-            -- P3: Moderate Volume / Moderate Friction, OR Low-Volume Chronic Offenders
-            WHEN (s.meets_min_volume_30 = 1 AND (s.seller_late_exposure >= b.exp_p50 OR s.seller_late_item_rate_pct >= b.late_p50))
-              OR (s.meets_min_volume_30 = 0 AND s.total_orders >= 10 AND s.seller_late_item_rate_pct >= 25.0)
-            THEN 'P3 - Operational Monitoring'
-            
-            -- P4: Low Volume or Not Prioritised
-            ELSE 'P4 - Low Volume / Not Prioritised'
-        END AS priority_tier,
-
-        CASE 
-            WHEN s.meets_min_volume_30 = 1 
-             AND s.seller_late_exposure >= b.exp_p75 
-             AND s.seller_late_item_rate_pct >= b.late_p75 
-            THEN 'Direct Seller SLA Review & Handover Lead-Time Calibration'
-            WHEN s.meets_min_volume_30 = 1 
-             AND s.seller_late_exposure >= b.exp_p75 
-             AND s.freight_burden_pct >= b.freight_p75 
-            THEN 'Packaging & Volumetric Freight Audit; Regional Fulfillment Re-routing'
-            WHEN s.meets_min_volume_30 = 1 
-             AND s.seller_late_exposure >= b.exp_p75 
-            THEN 'High-Exposure Merchant Operational Inspection'
-            WHEN s.meets_min_volume_30 = 1 
-             AND s.seller_late_item_rate_pct >= b.late_p75 
-            THEN 'Carrier Handoff & Dispatch Speed Diagnostic'
-            ELSE 'Automated Dashboard Monitoring'
-        END AS recommended_operational_action
-
-    FROM view_seller_root_cause s
-    CROSS JOIN qualified_seller_benchmarks b
+    GROUP BY period
 )
-SELECT * FROM classified_sellers;
+SELECT
+    s.*,
+
+    -- Deterministic Percentile Tier Rules (P0-2: Evaluates seller-caused friction)
+    CASE
+        -- P1: High Volume + High Seller Exposure (>= 75th) + High Severity (>= 75th)
+        WHEN s.meets_min_volume_30 = 1
+         AND s.seller_late_exposure >= b.exp_p75
+         AND (s.seller_late_item_rate_pct >= b.late_p75 OR s.freight_burden_pct >= b.freight_p75)
+        THEN 'P1 - Immediate Intervention'
+
+        -- P2: High Volume + Either High Seller Exposure OR High Severity
+        WHEN s.meets_min_volume_30 = 1
+         AND (s.seller_late_exposure >= b.exp_p75
+              OR s.seller_late_item_rate_pct >= b.late_p75
+              OR s.freight_burden_pct >= b.freight_p75)
+        THEN 'P2 - Operational Investigation'
+
+        -- P3: Moderate Volume / Moderate Friction, OR Low-Volume High-Late-Rate Sellers
+        WHEN (s.meets_min_volume_30 = 1 AND (s.seller_late_exposure >= b.exp_p50 OR s.seller_late_item_rate_pct >= b.late_p50))
+          OR (s.meets_min_volume_30 = 0 AND s.total_orders >= 10 AND s.seller_late_item_rate_pct >= 25.0)
+        THEN 'P3 - Operational Monitoring'
+
+        -- P4: Low Volume or Not Prioritised
+        ELSE 'P4 - Low Volume / Not Prioritised'
+    END AS priority_tier,
+
+    CASE
+        WHEN s.meets_min_volume_30 = 1
+         AND s.seller_late_exposure >= b.exp_p75
+         AND s.seller_late_item_rate_pct >= b.late_p75
+        THEN 'Direct Seller SLA Review & Handover Lead-Time Calibration'
+        WHEN s.meets_min_volume_30 = 1
+         AND s.seller_late_exposure >= b.exp_p75
+         AND s.freight_burden_pct >= b.freight_p75
+        THEN 'Packaging & Volumetric Freight Audit; Regional Fulfillment Re-routing'
+        WHEN s.meets_min_volume_30 = 1
+         AND s.seller_late_exposure >= b.exp_p75
+        THEN 'High-Exposure Merchant Operational Inspection'
+        WHEN s.meets_min_volume_30 = 1
+         AND s.seller_late_item_rate_pct >= b.late_p75
+        THEN 'Carrier Handoff & Dispatch Speed Diagnostic'
+        ELSE 'Automated Dashboard Monitoring'
+    END AS recommended_operational_action
+FROM view_seller_period_metrics s
+JOIN qualified_seller_benchmarks b ON s.period = b.period;
+
+CREATE OR REPLACE VIEW view_seller_intervention_matrix AS
+SELECT
+    s.seller_id,
+    s.seller_state,
+    s.seller_city,
+    s.total_orders,
+    s.total_items,
+    s.gmv,
+    s.seller_aov,
+    s.late_items,
+    s.late_item_rate_pct,
+    s.seller_late_items,
+    s.seller_late_item_rate_pct,
+    s.carrier_late_items,
+    s.carrier_late_item_rate_pct,
+    s.avg_delay_days_late_items,
+    s.freight_burden_pct,
+    s.avg_review_score,
+    s.low_review_rate_pct,
+    s.total_late_transaction_exposure,
+    s.seller_late_exposure,
+    s.carrier_late_exposure,
+    s.high_freight_gmv_exposure,
+    s.meets_min_volume_30,
+    t.priority_tier,
+    t.recommended_operational_action
+FROM view_seller_root_cause s
+JOIN view_seller_tiers_by_period t ON t.period = 'ALL' AND t.seller_id = s.seller_id;
 
 -- ----------------------------------------------------------------------------
 -- 2. TIER SUMMARY & SCENARIO-BASED MITIGATION EXPOSURE
@@ -164,69 +199,41 @@ FROM view_seller_root_cause s CROSS JOIN b_50;
 
 -- ----------------------------------------------------------------------------
 -- 4. TEMPORAL PERSISTENCE CHECK (2017 -> 2018 OUT-OF-SAMPLE HOLDOUT)
--- Validates whether 2017 P1 sellers maintain persistent high friction in 2018.
+-- Cohort: sellers the SAME tier rule (view_seller_tiers_by_period, period '2017')
+-- puts in P1 using 2017 orders only; 'Other' = every other seller active in both
+-- years. A seller is active in a year if it has at least one delivered item that
+-- year. Sellers that stopped selling after 2017 are not in the 2018 comparison.
+-- Rates are item-level (late or seller-late items / delivered items), pooled over
+-- sellers, so a seller counts in proportion to its volume. The primary outcome is
+-- seller-caused lateness (the headline tier's outcome); all-cause is secondary.
 -- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW view_seller_persistence_detail AS
+SELECT
+    t17.seller_id,
+    CASE WHEN t17.priority_tier = 'P1 - Immediate Intervention' THEN 'P1_2017' ELSE 'Other_2017' END AS tier_2017,
+    t17.delivered_items AS delivered_items_2017,
+    t17.seller_late_items AS seller_late_items_2017,
+    t17.late_items AS late_items_2017,
+    t18.total_orders AS orders_2018,
+    t18.delivered_items AS delivered_items_2018,
+    t18.seller_late_items AS seller_late_items_2018,
+    t18.late_items AS late_items_2018
+FROM view_seller_tiers_by_period t17
+JOIN view_seller_period_metrics t18 ON t18.period = '2018' AND t18.seller_id = t17.seller_id
+WHERE t17.period = '2017'
+  AND t17.delivered_items > 0
+  AND t18.delivered_items > 0;
+
 CREATE OR REPLACE VIEW view_seller_persistence_check AS
-WITH base_orders AS (
-    SELECT 
-        o.order_id,
-        oi.seller_id,
-        oi.item_price AS price,
-        oi.freight_value,
-        CAST(strftime(o.order_purchase_timestamp, '%Y') AS INT) AS order_year,
-        o.is_late
-    FROM fact_orders o
-    JOIN fact_order_items oi ON o.order_id = oi.order_id
-    WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL
-),
-seller_2017 AS (
-    SELECT 
-        seller_id,
-        COUNT(DISTINCT order_id) AS orders_2017,
-        SUM(price) AS gmv_2017,
-        ROUND(100.0 * AVG(is_late), 2) AS late_rate_2017,
-        SUM(CASE WHEN is_late = 1 THEN price + freight_value ELSE 0 END) AS late_exp_2017
-    FROM base_orders
-    WHERE order_year = 2017
-    GROUP BY seller_id
-),
-benchmarks_2017 AS (
-    SELECT 
-        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_exp_2017) AS exp_p75,
-        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY late_rate_2017) AS late_p75
-    FROM seller_2017
-    WHERE orders_2017 >= 20
-),
-classified_2017 AS (
-    SELECT 
-        s.*,
-        CASE 
-            WHEN s.orders_2017 >= 20 AND s.late_exp_2017 >= b.exp_p75 AND s.late_rate_2017 >= b.late_p75 THEN 'P1_2017'
-            ELSE 'Other_2017'
-        END AS tier_2017
-    FROM seller_2017 s
-    CROSS JOIN benchmarks_2017 b
-),
-seller_2018 AS (
-    SELECT 
-        seller_id,
-        COUNT(DISTINCT order_id) AS orders_2018,
-        SUM(is_late) AS late_orders_2018,
-        ROUND(100.0 * AVG(is_late), 2) AS late_rate_2018
-    FROM base_orders
-    WHERE order_year = 2018
-    GROUP BY seller_id
-)
-SELECT 
-    c.tier_2017,
-    COUNT(s18.seller_id) AS active_in_2018_sellers,
-    ROUND(AVG(s18.orders_2018), 1) AS avg_orders_2018,
-    ROUND(AVG(s18.late_rate_2018), 2) AS avg_late_rate_2018,
-    SUM(CASE WHEN s18.late_orders_2018 > 0 THEN 1 ELSE 0 END) AS sellers_with_late_in_2018,
-    ROUND(100.0 * SUM(CASE WHEN s18.late_orders_2018 > 0 THEN 1 ELSE 0 END) / COUNT(s18.seller_id), 2) AS pct_with_late_orders,
-    SUM(CASE WHEN s18.late_rate_2018 > 8.60 THEN 1 ELSE 0 END) AS sellers_above_base_rate,
-    ROUND(100.0 * SUM(CASE WHEN s18.late_rate_2018 > 8.60 THEN 1 ELSE 0 END) / COUNT(s18.seller_id), 2) AS pct_above_base_rate
-FROM classified_2017 c
-JOIN seller_2018 s18 ON c.seller_id = s18.seller_id
-GROUP BY c.tier_2017
-ORDER BY c.tier_2017;
+SELECT
+    tier_2017,
+    COUNT(*) AS sellers_active_both_years,
+    SUM(delivered_items_2017) AS delivered_items_2017,
+    SUM(delivered_items_2018) AS delivered_items_2018,
+    ROUND(100.0 * SUM(seller_late_items_2017) / SUM(delivered_items_2017), 2) AS seller_late_rate_2017,
+    ROUND(100.0 * SUM(seller_late_items_2018) / SUM(delivered_items_2018), 2) AS seller_late_rate_2018,
+    ROUND(100.0 * SUM(late_items_2017) / SUM(delivered_items_2017), 2) AS all_cause_late_rate_2017,
+    ROUND(100.0 * SUM(late_items_2018) / SUM(delivered_items_2018), 2) AS all_cause_late_rate_2018
+FROM view_seller_persistence_detail
+GROUP BY tier_2017
+ORDER BY tier_2017;

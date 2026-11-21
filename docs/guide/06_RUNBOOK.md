@@ -75,7 +75,7 @@ python scripts/render_readme_tables.py --check
 ```powershell
 python -m pytest tests/
 ```
-Runs all 30 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`. *(Note: in PowerShell without an active virtual environment, prefer `python -m pytest` over bare `pytest`).*
+Runs all 34 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`. *(Note: in PowerShell without an active virtual environment, prefer `python -m pytest` over bare `pytest`).*
 
 ### Run Specific Test Modules
 ```powershell

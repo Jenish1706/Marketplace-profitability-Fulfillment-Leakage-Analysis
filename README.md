@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9.13-green.svg)](requirements.txt)
 [![Documentation](https://img.shields.io/badge/Documentation-Guide%2000--09-orange.svg)](docs/guide/00_START_HERE.md)
 [![Report](https://img.shields.io/badge/Report-Executive%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
-[![Tests](https://img.shields.io/badge/Verification-30%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Verification-34%20Passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -14,7 +14,7 @@
 As marketplace Gross Merchandise Value (GMV) scales, fulfillment friction frequently compresses contribution economics. This project analyzes **99,441 commercial orders** across Brazilian e-commerce (Olist dataset) to answer three executive operations questions:
 1. **Fulfillment Attribution:** Are delivery delays driven by merchant dispatch breaches or carrier line-haul transit bottlenecks?
 2. **Customer Sentiment Econometrics:** Does delivery delay degrade customer review scores through linear daily decay, or does automated survey timing create an unarrived-package step function penalty?
-3. **Targeted Intervention:** Can high-friction merchants be isolated into a persistent, high-leverage priority cohort rather than penalizing sellers indiscriminately?
+3. **Targeted Intervention:** Can high-friction merchants be isolated into a high-leverage priority cohort rather than penalizing sellers indiscriminately, and how much of that targeting carries over to the following year?
 
 For the comprehensive 10-part technical documentation, start with the **[Public Guide: 00_START_HERE.md](docs/guide/00_START_HERE.md)**.
 
@@ -61,13 +61,22 @@ Sellers are segmented into transparent priority tiers based on seller-caused dis
 *\*Total orders across tiers sum to 100,010 because multi-seller orders (1,278 orders) represent multiple seller fulfillment engagements.*
 
 <!-- BEGIN_PERSISTENCE_CHECK -->
-### Out-of-Sample Persistence Check (2017 → 2018 Holdout)
-| 2017 Merchant Cohort | 2018 Active Sellers | Avg Orders (2018) | Avg Late Delivery Rate (2018) | Sellers with Late Orders (2018) | Share Exceeding Base Late Rate (8.60%) |
-|---|---|---|---|---|---|
-| **2017 P1 Priority Cohort** | 48 | 135.4 | **13.05%** | 87.50% (42/48) | **54.17% (26/48)** |
-| Other 2017 Sellers | 1,027 | 32.9 | 8.60% | 56.86% (584/1,027) | 32.13% (330/1,027) |
+### Out-of-Sample Persistence Check (2017 → 2018)
 
-**Persistence Validation:** Testing 2017 P1 sellers out-of-sample across 2018 demonstrates that operational friction is chronic. Among 2017 P1 merchants active in 2018, **54.17%** continued to exceed the platform baseline late rate (8.60%), averaging a **13.05% late delivery rate** (+51.7% relative penalty vs non-P1 merchants). Overall, 87.50% recorded late deliveries in 2018, validating that high-friction fulfillment reflects structural merchant dispatch deficits rather than transient seasonal noise.
+The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, applied to 2017 orders only (`view_seller_tiers_by_period`). Rates are item-level (late items ÷ delivered items), pooled over sellers active in both years; gaps are computed from unrounded rates. Intervals are 95% seller-level bootstrap percentile intervals (5,000 resamples, fixed seed).
+
+| Outcome | Cohort | 2017 | 2018 | Change |
+|---|---|---|---|---|
+| Seller-caused late rate (primary) | 2017 P1 sellers (n = 52) | 4.99% | 2.97% | -2.02 pts |
+| | All other sellers (n = 1,023) | 0.97% | 1.54% | +0.57 pts |
+| | **Gap (P1 − other)** | 4.02 pts | **1.44 pts** [0.54, 2.77] | **-2.59 pts** [-4.78, -1.01] |
+| All-cause late rate (secondary) | 2017 P1 sellers (n = 52) | 9.17% | 8.26% | -0.91 pts |
+| | All other sellers (n = 1,023) | 4.68% | 7.75% | +3.06 pts |
+| | **Gap (P1 − other)** | 4.49 pts | **0.51 pts** [-0.86, 2.14] | **-3.98 pts** [-6.04, -2.18] |
+
+**Reading:** the seller-caused gap between 2017 P1 sellers and other sellers was 4.02 pts in 2017 and 1.44 pts in 2018, which is still positive (its interval excludes zero); the change of -2.59 pts is a decrease whose interval excludes zero. About 36% of the 2017 gap remains in 2018. Part of the P1 excess therefore persists, but most of it does not carry over. Shrinkage of this kind is what selecting sellers on a high 2017 rate produces even when underlying performance is stable (regression to the mean), and this check cannot separate that from genuine improvement. The P1 tier is a prioritisation list for review, not evidence that these sellers have a fixed trait.
+
+*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and the all-cause outcome also counts carrier and promise-setting delay that sellers do not control.
 <!-- END_PERSISTENCE_CHECK -->
 
 <!-- BEGIN_REGRESSION_TABLE -->

@@ -16,6 +16,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from scripts.run_review_econometrics import load_data, fit_models, generate_regression_markdown_table, get_db_connection
+from scripts.run_persistence_check import render_persistence_markdown
 
 def get_rendered_blocks(con):
     # 1. Economic Framework Block
@@ -118,19 +119,9 @@ def get_rendered_blocks(con):
         f"- **Answer:** Once the binary state of parcel non-arrival at survey time (`undelivered_at_review`) is included ($\\text{{OR}} = {odds_undelivered:.2f}\\times$), the marginal day coefficient is economically small ($\\text{{OR}} = {odds_overdue:.4f}$ per day, $p {pval_overdue_str}, z = {z_overdue:.2f}$; 30 days overdue adds only $\\sim {odds_30d:.2f}\\times$ odds). Customer dissatisfaction is triggered by the breach of promise date (step function), not daily compounding."
     )
 
-    # 5. Out-of-Sample Persistence Check Block (2017 -> 2018 Holdout)
-    pers = con.execute("SELECT * FROM view_seller_persistence_check ORDER BY tier_2017").df()
-    p_other = pers[pers['tier_2017'] == 'Other_2017'].iloc[0]
-    p_p1 = pers[pers['tier_2017'] == 'P1_2017'].iloc[0]
-
-    persistence_content = (
-        "### Out-of-Sample Persistence Check (2017 → 2018 Holdout)\n"
-        "| 2017 Merchant Cohort | 2018 Active Sellers | Avg Orders (2018) | Avg Late Delivery Rate (2018) | Sellers with Late Orders (2018) | Share Exceeding Base Late Rate (8.60%) |\n"
-        "|---|---|---|---|---|---|\n"
-        f"| **2017 P1 Priority Cohort** | {int(p_p1['active_in_2018_sellers'])} | {p_p1['avg_orders_2018']:.1f} | **{p_p1['avg_late_rate_2018']:.2f}%** | {p_p1['pct_with_late_orders']:.2f}% ({int(p_p1['sellers_with_late_in_2018'])}/{int(p_p1['active_in_2018_sellers'])}) | **{p_p1['pct_above_base_rate']:.2f}% ({int(p_p1['sellers_above_base_rate'])}/{int(p_p1['active_in_2018_sellers'])})** |\n"
-        f"| Other 2017 Sellers | {int(p_other['active_in_2018_sellers']):,} | {p_other['avg_orders_2018']:.1f} | {p_other['avg_late_rate_2018']:.2f}% | {p_other['pct_with_late_orders']:.2f}% ({int(p_other['sellers_with_late_in_2018'])}/{int(p_other['active_in_2018_sellers']):,}) | {p_other['pct_above_base_rate']:.2f}% ({int(p_other['sellers_above_base_rate'])}/{int(p_other['active_in_2018_sellers']):,}) |\n\n"
-        f"**Persistence Validation:** Testing 2017 P1 sellers out-of-sample across 2018 demonstrates that operational friction is chronic. Among 2017 P1 merchants active in 2018, **{p_p1['pct_above_base_rate']:.2f}%** continued to exceed the platform baseline late rate ({p_other['avg_late_rate_2018']:.2f}%), averaging a **{p_p1['avg_late_rate_2018']:.2f}% late delivery rate** (+51.7% relative penalty vs non-P1 merchants). Overall, {p_p1['pct_with_late_orders']:.2f}% recorded late deliveries in 2018, validating that high-friction fulfillment reflects structural merchant dispatch deficits rather than transient seasonal noise."
-    )
+    # 5. Out-of-Sample Persistence Check Block (2017 -> 2018 holdout, MP-06): cohort and rates come from
+    #    SQL views that share the headline tier rule; bootstrap intervals come from run_persistence_check.py
+    persistence_content = render_persistence_markdown(con)
 
     return {
         "ECONOMIC_FRAMEWORK": framework_content,
