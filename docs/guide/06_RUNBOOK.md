@@ -39,12 +39,12 @@ All commands are executed from the repository root directory.
 |---|---|---|---|
 | **1** | `python pipeline/run_pipeline.py` | 10–15 seconds | Ingests 9 CSVs, builds DuckDB staging and analytical views, generates `logs/run_<id>.json`. |
 | **2** | `python tests/verify_pipeline.py` | 1–2 seconds | Validates 7 core pipeline invariants (PK uniqueness, financial sums, rate bounds). |
-| **3** | `python scripts/render_readme_tables.py --check` | 2–3 seconds | Asserts that `README.md` and `report/decision_memo.md` match database views. |
+| **3** | `python scripts/render_readme_tables.py --check` | about 10 seconds | Asserts that `README.md` and `report/decision_memo.md` match database views. |
 | **4** | `python scripts/run_review_econometrics.py` | 5–8 seconds | Runs Kruskal-Wallis, Mann-Whitney, and cluster-robust logistic regressions; updates `report/econometrics_results.json`. |
 | **5** | `python dashboard/generate_powerbi_data.py` | 3–5 seconds | Exports 9 clean star-schema CSV tables into `dashboard/powerbi_data/`. |
-| **6** | `python report/generate_decision_memo_pdf.py` | 2–3 seconds | Compiles two-page executive memorandum to `report/decision_memo.pdf`. |
+| **6** | `python report/generate_decision_memo_pdf.py` | 2–3 seconds | Compiles the executive memorandum to `report/decision_memo.pdf`. |
 | **7** | `python scripts/generate_writeup_pdf.py` | 2–3 seconds | Compiles technical whitepaper to `report/writeup.pdf`. |
-| **Master** | `python scripts/run_all.py` | 45–50 seconds | Executes pipeline, verification gate, table check, and full test suite sequentially. |
+| **Master** | `python scripts/run_all.py` | about 100 seconds | Executes pipeline, verification gate, table check, and full test suite sequentially. |
 
 ---
 
@@ -75,7 +75,7 @@ python scripts/render_readme_tables.py --check
 ```powershell
 python -m pytest tests/
 ```
-Runs all 43 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`. *(Note: in PowerShell without an active virtual environment, prefer `python -m pytest` over bare `pytest`).*
+Runs all 46 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`. *(Note: in PowerShell without an active virtual environment, prefer `python -m pytest` over bare `pytest`).*
 
 ### Run Specific Test Modules
 ```powershell

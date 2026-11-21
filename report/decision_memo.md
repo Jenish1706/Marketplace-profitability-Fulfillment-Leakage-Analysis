@@ -80,7 +80,7 @@ The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, ap
 
 *Sensitivity:* weighting every seller equally (unweighted means of seller-level rates) gives seller-caused rates of 7.63% → 4.89% for P1 sellers and 2.09% → 3.04% for other sellers, a gap of 5.55 pts in 2017 and 1.85 pts in 2018 (33% remains).
 
-*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and the all-cause outcome also counts carrier and promise-setting delay that sellers do not control.
+*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and attrition differs between the groups: 52 of 56 P1 sellers (93%) but 1,023 of 1,634 other sellers (63%) were active in both years. "2017 orders" means orders purchased in 2017; some were delivered in 2018. The all-cause outcome also counts delays that sellers do not control (post-handover transit and promise-setting).
 <!-- END_PERSISTENCE_CHECK -->
 
 ---

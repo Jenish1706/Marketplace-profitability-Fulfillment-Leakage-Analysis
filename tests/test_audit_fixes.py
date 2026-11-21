@@ -762,5 +762,58 @@ class TestAuditFixes(unittest.TestCase):
         self.assertLess(pers["share_remaining_pct"], 50.0, "step 7: much of the excess does not carry over")
 
 
+    def test_g4b_render_check_fails_when_a_marker_is_missing(self):
+        """G4b: update_file_markers() skips a block whose markers are missing, so a deleted marker could let stale hand-edited
+        text pass. Every required block must be present, and a missing marker must be reported."""
+        from scripts.render_readme_tables import REQUIRED_MARKERS, missing_markers
+
+        for rel, required in REQUIRED_MARKERS.items():
+            with open(os.path.join(project_root, *rel.split("/")), "r", encoding="utf-8") as f:
+                self.assertEqual(missing_markers(f.read(), required), [], f"{rel} lacks a required rendered block")
+        with open(os.path.join(project_root, "README.md"), "r", encoding="utf-8") as f:
+            readme = f.read()
+        required = REQUIRED_MARKERS["README.md"]
+        self.assertEqual(missing_markers(readme.replace("<!-- BEGIN_PERSISTENCE_CHECK -->", ""), required), ["PERSISTENCE_CHECK"])
+        self.assertEqual(missing_markers(readme.replace("<!-- END_TIER_TABLE -->", ""), required), ["TIER_TABLE"])
+
+    def test_g4b_hand_typed_readme_counts_match_the_data(self):
+        """G4b: hand-typed counts in the README (orders, tier order volume, multi-seller orders) and the documented test count
+        equal what the data and the suite say."""
+        import re
+        import subprocess
+
+        with open(os.path.join(project_root, "README.md"), "r", encoding="utf-8") as f:
+            readme = f.read()
+        orders = self.con.execute("SELECT COUNT(*) FROM fact_orders").fetchone()[0]
+        tier_orders = self.con.execute("SELECT SUM(total_orders) FROM view_intervention_tier_summary").fetchone()[0]
+        pairs = self.con.execute("SELECT COUNT(*) FROM (SELECT 1 FROM fact_order_items GROUP BY order_id, seller_id)").fetchone()[0]
+        multi = self.con.execute("SELECT COUNT(*) FROM fact_orders WHERE is_multi_seller = 1").fetchone()[0]
+        self.assertIn(f"{orders:,}", readme)
+        self.assertEqual(int(tier_orders), pairs, "tier order volume must equal the number of (order, seller) pairs")
+        self.assertIn(f"{pairs:,}", readme)
+        self.assertIn(f"{multi:,} orders", readme)
+
+        out = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"],
+                             cwd=project_root, capture_output=True, text=True).stdout
+        collected = int(re.search(r"(\d+) tests? collected", out).group(1))
+        badge = int(re.search(r"Verification-(\d+)%20Passed", readme).group(1))
+        self.assertEqual(badge, collected, "README badge must equal the number of collected tests")
+        for rel in (os.path.join("docs", "guide", "00_START_HERE.md"), os.path.join("docs", "guide", "06_RUNBOOK.md")):
+            with open(os.path.join(project_root, rel), "r", encoding="utf-8") as f:
+                self.assertIn(f"Runs all {collected} unit and regression tests", f.read(), f"{rel} states a stale test count")
+
+    def test_g4b_memo_pdf_generator_has_no_stale_hand_typed_figures(self):
+        """G4b: the memo PDF is linked from the README but is not covered by the render check, so guard its generator:
+        monthly late rates come from the database, the subject matches the memo, and the retired wording is gone."""
+        with open(os.path.join(project_root, "report", "generate_decision_memo_pdf.py"), "r", encoding="utf-8") as f:
+            src = f.read()
+        for stale in ("14.3%", "14.31%", "21.36%", "proves", "postal bottleneck", "overwhelming carrier"):
+            self.assertNotIn(stale, src, f"stale or retired text {stale!r} in the memo PDF generator")
+        for needed in ("Illustrative Mitigation", "bootstrap_persistence", "nov17_late", "int(kpi_row['total_orders'])"):
+            self.assertIn(needed, src, f"memo PDF generator lacks {needed!r}")
+        nov = self.con.execute("SELECT 100.0 * SUM(is_late) / SUM(is_delivered) FROM fact_orders WHERE order_purchase_year_month = '2017-11'").fetchone()[0]
+        self.assertAlmostEqual(nov, 12.40, places=1, msg="date-level Nov 2017 late rate")
+
+
 if __name__ == "__main__":
     unittest.main()

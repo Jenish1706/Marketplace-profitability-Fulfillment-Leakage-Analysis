@@ -76,7 +76,7 @@
 ---
 
 ### ADR-06: Primary Cluster-Robust Standard Errors on `seller_id`
-- **Context:** Orders fulfilled by the same seller share merchant practices, inventory quality, and warehouse processes. In earlier revisions, standard errors were clustered at the `seller_state` level (27 clusters), with São Paulo accounting for $>70\%$ of shipments.
+- **Context:** Orders fulfilled by the same seller share merchant practices, inventory quality, and warehouse processes. In earlier revisions, standard errors were clustered at the `seller_state` level (roughly two dozen clusters: 23 seller states exist in the data), with São Paulo accounting for $>70\%$ of shipments.
 - **Decision:** Shift primary clustering from `seller_state` to `seller_id` ($G = 2,953$ independent clusters), with `seller_state` and `HC1` reported as sensitivity checks.
 - **Alternatives Considered:**
   - *State-Level Clustering:* Violates asymptotic requirements ($G \to \infty$ with balanced clusters), deflating standard errors and creating false precision.
@@ -121,4 +121,4 @@
 - **Alternatives Considered:**
   - *Docker Containerization:* Adds Docker desktop installation friction on Windows with zero performance benefit for local analytical execution.
   - *Unpinned `requirements.txt`:* Subject to upstream library API breaking changes.
-- **Consequences:** 100% reproducible execution on any Python 3.9 to 3.12 environment in under 50 seconds with zero infrastructure overhead.
+- **Consequences:** 100% reproducible execution on any Python 3.9 to 3.12 environment in under 2 minutes with zero infrastructure overhead.

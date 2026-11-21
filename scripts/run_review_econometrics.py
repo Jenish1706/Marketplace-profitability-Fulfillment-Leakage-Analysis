@@ -2,7 +2,7 @@
 Script: scripts/run_review_econometrics.py
 Purpose: Runs econometric specifications (Model A conventional delay vs Model B customer information set at review time).
 Primary cluster-robust covariance uses seller_id (2,953 clusters).
-Sensitivity checks report seller_state (27 clusters) and HC1 robust standard errors.
+Sensitivity checks report seller_state (about two dozen clusters: 23 seller states) and HC1 robust standard errors.
 """
 
 import os

@@ -117,6 +117,19 @@ def unweighted_sensitivity(detail):
     }
 
 
+def attrition(con):
+    """((P1 sellers active in 2017, of those also active in 2018), (same for all other sellers))."""
+    rows = con.execute("""
+        SELECT (t17.priority_tier = 'P1 - Immediate Intervention') AS is_p1, COUNT(*) AS n17,
+               SUM(CASE WHEN m18.delivered_items > 0 THEN 1 ELSE 0 END) AS n_both
+        FROM view_seller_tiers_by_period t17
+        LEFT JOIN view_seller_period_metrics m18 ON m18.period = '2018' AND m18.seller_id = t17.seller_id
+        WHERE t17.period = '2017' AND t17.delivered_items > 0
+        GROUP BY 1""").fetchall()
+    by_flag = {bool(r[0]): (int(r[1]), int(r[2])) for r in rows}
+    return by_flag[True], by_flag[False]
+
+
 def _pts(x, signed=False):
     return f"{x:+.2f} pts" if signed else f"{x:.2f} pts"
 
@@ -180,6 +193,13 @@ def render_persistence_markdown(con, n_boot=N_BOOT, seed=SEED):
             "(regression to the mean), so this is one split of one year pair, not proof of a fixed seller trait."
         )
     u = unweighted_sensitivity(detail)
+    (p1_n, p1_both), (o_n, o_both) = attrition(con)
+    limits = (
+        "*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and attrition differs between the groups: "
+        f"{p1_both} of {p1_n} P1 sellers ({100 * p1_both / p1_n:.0f}%) but {o_both:,} of {o_n:,} other sellers ({100 * o_both / o_n:.0f}%) were active in both years. "
+        "\"2017 orders\" means orders purchased in 2017; some were delivered in 2018. The all-cause outcome also counts delays that sellers do not control "
+        "(post-handover transit and promise-setting)."
+    )
     sensitivity = (
         "*Sensitivity:* weighting every seller equally (unweighted means of seller-level rates) gives seller-caused rates of "
         f"{u['p1_2017']:.2f}% → {u['p1_2018']:.2f}% for P1 sellers and {u['other_2017']:.2f}% → {u['other_2018']:.2f}% for other sellers, "
@@ -191,8 +211,7 @@ def render_persistence_markdown(con, n_boot=N_BOOT, seed=SEED):
         "",
         sensitivity,
         "",
-        "*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and the all-cause outcome also counts "
-        "carrier and promise-setting delay that sellers do not control.",
+        limits,
     ]
     return "\n".join(lines)
 

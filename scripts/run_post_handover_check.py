@@ -213,7 +213,7 @@ def render_split_markdown(con, n_boot=N_BOOT, seed=SEED):
         "",
         reading,
         "",
-        "*Limits:* the dataset has no carrier scans, so a long post-handover leg cannot be attributed to the carrier, to last-mile or to customer availability; "
+        "*Limits:* late pairs are selected on being late, so a longer transit than on-time pairs is expected by construction; the informative part is that promises were only slightly shorter and that a typical transit would have put most of them on time. The dataset has no carrier scans, so a long post-handover leg cannot be attributed to the carrier, to last-mile or to customer availability; "
         "handover dates are recorded by sellers, so a manifest scanned before the parcel physically left would hide dispatch delay inside transit; "
         "the counterfactuals are descriptive, not causal.",
     ]

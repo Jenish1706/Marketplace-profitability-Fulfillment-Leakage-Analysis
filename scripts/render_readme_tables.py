@@ -185,6 +185,28 @@ def update_file_markers(file_path, blocks, check_only=False):
         print(f"Successfully rendered and synchronized {os.path.basename(file_path)}.")
         return True
 
+# Blocks each file must contain. update_file_markers() skips a block whose markers are missing, so without this a deleted
+# BEGIN/END marker would let stale hand-edited text pass the check (found by the G4b review).
+REQUIRED_MARKERS = {
+    "README.md": ["STORYLINE_README", "ECONOMIC_FRAMEWORK", "POST_HANDOVER_SUMMARY", "TIER_TABLE", "PERSISTENCE_CHECK", "REGRESSION_TABLE"],
+    "report/decision_memo.md": ["POST_HANDOVER_SUMMARY", "TIER_TABLE", "PERSISTENCE_CHECK"],
+    "docs/guide/00_START_HERE.md": ["STORYLINE_GUIDE"],
+    "docs/guide/01_CONCEPTS.md": ["MODEL_B_CONCEPTS"],
+    "docs/guide/08_DESIGN_DECISIONS.md": ["MODEL_B_ADR"],
+    "docs/guide/09_RESULTS_AND_LIMITATIONS.md": ["POST_HANDOVER_SPLIT", "REPURCHASE_LINK", "MODEL_B_RESULTS", "PERSISTENCE_CHECK"],
+}
+
+
+def missing_markers(content, required):
+    """Names in `required` whose BEGIN/END markers are absent or out of order in `content`."""
+    problems = []
+    for name in required:
+        b, e = content.find(f"<!-- BEGIN_{name} -->"), content.find(f"<!-- END_{name} -->")
+        if b == -1 or e == -1 or e < b:
+            problems.append(name)
+    return problems
+
+
 def sync_all(check_only=False):
     con = get_db_connection(read_only=True)
     try:
@@ -202,6 +224,17 @@ def sync_all(check_only=False):
     ]
 
     all_passed = True
+    for rel, required in REQUIRED_MARKERS.items():
+        path = os.path.join(PROJECT_ROOT, *rel.split("/"))
+        if not os.path.isfile(path):
+            print(f"ERROR: {rel} is missing")
+            all_passed = False
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            problems = missing_markers(f.read(), required)
+        if problems:
+            print(f"ERROR: {rel} lacks rendered-block markers: {', '.join(problems)}")
+            all_passed = False
     for fp in target_files:
         if not os.path.isfile(fp):
             continue
@@ -209,13 +242,12 @@ def sync_all(check_only=False):
         if not passed:
             all_passed = False
 
-    if check_only:
-        if all_passed:
-            sys.exit(0)
-        else:
-            sys.exit(1)
+    if check_only or not all_passed:
+        sys.exit(0 if all_passed else 1)
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")  # diffs contain the minus sign; Windows consoles default to cp1252
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="Check without modifying files")
     args = parser.parse_args()

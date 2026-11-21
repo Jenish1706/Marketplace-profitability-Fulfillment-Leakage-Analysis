@@ -81,6 +81,18 @@ def build_pdf():
         tiers_df = con.execute("SELECT * FROM view_intervention_tier_summary ORDER BY priority_tier").df()
         pareto_d1 = con.execute("SELECT * FROM view_seller_pareto_deciles WHERE exposure_decile = 1").df().iloc[0]
         sens_df = con.execute("SELECT * FROM view_threshold_sensitivity_check").df()
+        # Measured results come from the same scripts as the README, so the PDF cannot drift from them
+        sys.path.insert(0, PROJECT_ROOT)
+        import re
+        from scripts.run_persistence_check import bootstrap_persistence, load_detail
+        from scripts.run_post_handover_check import compute as post_handover, summary_sentence
+        from scripts.run_repurchase_check import compute as repurchase
+        monthly = dict(con.execute("SELECT order_purchase_year_month, 100.0 * SUM(is_late) / SUM(is_delivered) FROM fact_orders "
+                                   "WHERE order_purchase_year_month IN ('2017-11', '2018-03') GROUP BY 1").fetchall())
+        nov17_late, mar18_late = float(monthly['2017-11']), float(monthly['2018-03'])
+        persistence = bootstrap_persistence(load_detail(con))['seller']
+        post_handover_text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', summary_sentence(post_handover(con)))
+        repurchase_raw = repurchase(con)['raw']
     finally:
         con.close()
 
@@ -216,7 +228,7 @@ def build_pdf():
          Paragraph("<b>DATE:</b> September 10, 2026", meta_style)],
         [Paragraph("<b>FROM:</b> Marketplace Commercial & Operational Analytics", meta_style),
          Paragraph("<b>CLASSIFICATION:</b> Privileged / Operations Diagnostic", meta_style)],
-        [Paragraph("<b>SUBJECT:</b> Operational Fulfillment Leakage & Priority Partner Intervention Strategy", meta_style),
+        [Paragraph("<b>SUBJECT:</b> Operational Diagnostic & Priority Intervention Strategy: Fulfillment Leakage Exposure and Illustrative Mitigation", meta_style),
          Paragraph("<b>STATUS:</b> Publication-Grade Verified Model", meta_style)]
     ]
     t_head = Table(meta_data, colWidths=[340, 192])
@@ -234,10 +246,10 @@ def build_pdf():
     p1_summary = tiers_df[tiers_df['priority_tier'].str.startswith('P1')].iloc[0]
     summary_text = (
         f"<b>EXECUTIVE SUMMARY & CORE PARADOX:</b> Between Jan 2017 and Aug 2018, the platform scaled Gross Merchandise Value (GMV) "
-        f"across <b>{kpi_row['total_orders']:,} total orders</b> ({kpi_row['total_orders'] - 2963:,} delivered, R$ {kpi_row['total_gmv']/1e6:.2f}M GMV). "
-        f"However, top-line growth triggered operational friction: late deliveries reached <b>14.3% in Nov 2017</b> and peaked in <b>March 2018</b>. "
+        f"across <b>{int(kpi_row['total_orders']):,} total orders</b> ({int(kpi_row['total_orders']) - 2963:,} delivered, R$ {kpi_row['total_gmv']/1e6:.2f}M GMV). "
+        f"However, top-line growth triggered operational friction: late deliveries (date-level) reached <b>{nov17_late:.2f}% in Nov 2017</b> and peaked at <b>{mar18_late:.2f}% in March 2018</b>. "
         f"Overall freight burden rose to <b>{kpi_row['overall_freight_burden_pct']:.1f}%</b>. Fulfillment friction is concentrated: "
-        f"<b>Top 10% of sellers generate {pareto_d1['decile_gmv_share_pct']:.1f}% of GMV and {pareto_d1['decile_exposure_share_pct']:.1f}% of late exposure ({pareto_d1['concentration_lift']:.2f}× lift)</b>. "
+        f"<b>Top 10% of sellers generate {pareto_d1['decile_gmv_share_pct']:.1f}% of GMV and {pareto_d1['decile_exposure_share_pct']:.1f}% of late exposure ({pareto_d1['concentration_lift']:.2f}× lift; the decile is chosen on late exposure, so this overstates concentration)</b>. "
         f"By decomposing seller dispatch delay from post-handover delay, we prioritize <b>{int(p1_summary['seller_count'])} Priority 1 (P1) sellers</b> carrying "
         f"<b>R$ {p1_summary['total_seller_late_exposure']:,.2f} in seller-caused late exposure</b> ({p1_summary['pct_of_platform_seller_exposure']:.1f}% of platform seller exposure). "
         f"Under our Base Case scenario (25% operational mitigation), targeted partner operations mitigates <b>R$ {p1_summary['scenario_mitigation_base_25pct']:,.2f}</b> in late-order exposure."
@@ -263,7 +275,7 @@ def build_pdf():
          Paragraph("<b>AVG REVIEW</b>", table_cell_center),
          Paragraph("<b>LATE EXPOSURE</b>", table_cell_center)],
         [Paragraph(f"<b>R$ {kpi_row['total_gmv']/1e6:.2f}M</b>", table_cell_center),
-         Paragraph(f"<b>{kpi_row['total_orders']:,}</b>", table_cell_center),
+         Paragraph(f"<b>{int(kpi_row['total_orders']):,}</b>", table_cell_center),
          Paragraph(f"<b>{kpi_row['overall_late_rate_pct']:.2f}%</b>", table_cell_center),
          Paragraph(f"<b>{kpi_row['overall_freight_burden_pct']:.2f}%</b>", table_cell_center),
          Paragraph(f"<b>{kpi_row['overall_avg_review_score']:.2f} / 5.0</b>", table_cell_center),
@@ -285,7 +297,7 @@ def build_pdf():
     # Section 1: Macro Performance Trends
     story.append(Paragraph("1. Macro Performance Trends & Logistics Inflection Points", h1_style))
     story.append(Paragraph(
-        "Quarterly diagnostic tracking reveals that fulfillment networks destabilized under commercial volume surges. During the November 2017 holiday rush, orders surged +63% MoM (to 7,544 orders), overwhelming carrier capacity and pushing monthly late deliveries to 14.31%. In Q1 2018, late rates escalated further, peaking at 21.36% in March 2018 with average shipment delays exceeding +8.8 days beyond promised dates. Across the operating timeline, platform freight burden escalated from 14.03% to 18.23%, eroding contribution economics across low-margin categories.",
+        f"Quarterly diagnostic tracking reveals that fulfillment networks destabilized under commercial volume surges. During the November 2017 holiday rush, orders surged +63% MoM (to 7,544 orders), overwhelming fulfillment capacity and pushing monthly late deliveries to {nov17_late:.2f}%. In Q1 2018, late rates escalated further, peaking at {mar18_late:.2f}% in March 2018 with average shipment delays exceeding +8.8 days beyond promised dates. Across the operating timeline, platform freight burden escalated from 14.03% to 18.23%, eroding contribution economics across low-margin categories.",
         body_style
     ))
     story.append(Spacer(1, 4))
@@ -338,7 +350,7 @@ def build_pdf():
     # ================= PAGE 2 =================
     story.append(Paragraph("3. Pareto Concentration & Intervention Prioritization Framework", h1_style))
     story.append(Paragraph(
-        f"Cumulative window analysis demonstrates Pareto concentration: <b>Top 10% of sellers (310 sellers) generate {pareto_d1['decile_gmv_share_pct']:.1f}% of GMV and {pareto_d1['decile_exposure_share_pct']:.1f}% of late-order exposure ({pareto_d1['concentration_lift']:.2f}× lift)</b>. Applying deterministic percentile thresholds across operational sellers ($N \\ge 30$) isolates four actionable tiers based on seller-caused delays:",
+        f"Cumulative window analysis demonstrates Pareto concentration: <b>Top 10% of sellers (310 sellers) generate {pareto_d1['decile_gmv_share_pct']:.1f}% of GMV and {pareto_d1['decile_exposure_share_pct']:.1f}% of late-order exposure ({pareto_d1['concentration_lift']:.2f}× lift; the decile is chosen on late exposure, so this overstates concentration)</b>. Applying deterministic percentile thresholds across operational sellers ($N \\ge 30$) isolates four actionable tiers based on seller-caused delays:",
         body_style
     ))
     story.append(Spacer(1, 3))
@@ -441,19 +453,37 @@ def build_pdf():
     ))
     story.append(Spacer(1, 4))
 
-    # Section 5: Statistical Validation
-    story.append(Paragraph("5. Statistical Validation & Customer Experience Impact", h1_style))
+    # Section 5: measured post-handover delay, persistence and churn link (computed from the same scripts as the README)
+    story.append(Paragraph("5. Post-Handover Delay, Persistence & Churn Link (Measured)", h1_style))
+    story.append(Paragraph(post_handover_text, body_style))
     story.append(Paragraph(
-        "Non-parametric hypothesis testing proves customer sentiment is degraded by delivery delays. Baseline on-time orders average <b>4.29 / 5.00</b> (6.6% low reviews $\\le 2$ stars). Ratings drop to <b>3.77</b> (1-2 days late), <b>2.47</b> (3-5 days late, 48.4% low reviews), and <b>1.74</b> (>5 days late, 68.6% low reviews). Review timing analysis reveals that <b>70.2% of reviews on late orders were submitted prior to delivery</b> (measuring response to promised date breach rather than post-delivery satisfaction). Kruskal-Wallis test ($H = 10,316.6, p < 10^{-15}$) and Mann-Whitney U ($r = -0.76$) confirm strong conditional association. Multivariate logistic regression indicates an odds ratio of <b>1.064 per delay day</b> ($p < 0.001$, coef = 0.0617), controlling for price, freight ratio, and interstate routing.",
+        f"<b>Persistence of the P1 tier (2017 to 2018).</b> Applying the same tier rule to 2017 orders alone, the seller-caused late-rate gap between the "
+        f"{persistence['n_p1']} P1 sellers and {persistence['n_other']:,} other sellers fell from {persistence['gap_2017']:.1f} to {persistence['gap_2018']:.1f} points in 2018 "
+        f"(95% bootstrap CI {persistence['gap_2018_ci'][0]:.1f} to {persistence['gap_2018_ci'][1]:.1f}), so about {persistence['share_remaining_pct']:.0f}% of the 2017 gap remains. "
+        f"Part of the shrinkage is regression to the mean, so P1 is a prioritisation list, not proof of a fixed seller trait. Sellers that stopped selling after 2017 are not in the comparison.",
+        body_style
+    ))
+    story.append(Paragraph(
+        f"<b>Measured churn link.</b> Customers whose first order was late repurchased within 180 days at {100 * repurchase_raw['rate_late']:.2f}% versus {100 * repurchase_raw['rate_on_time']:.2f}% "
+        f"(difference {100 * repurchase_raw['diff']:+.2f} pts, 95% CI {100 * repurchase_raw['diff_ci'][0]:+.2f} to {100 * repurchase_raw['diff_ci'][1]:+.2f}), not statistically distinguishable from zero; "
+        f"even if lateness removed every repeat purchase, at most {100 * repurchase_raw['ceiling_share']:.2f}% of a late order's value is at stake. Late-order value is therefore an upper bound on revenue at risk, not a measured loss.",
+        body_style
+    ))
+    story.append(Spacer(1, 4))
+
+    # Section 6: Statistical Validation
+    story.append(Paragraph("6. Statistical Validation & Customer Experience Impact", h1_style))
+    story.append(Paragraph(
+        "Non-parametric hypothesis testing shows customer sentiment is lower for late deliveries (an association in observational data). Baseline on-time orders average <b>4.29 / 5.00</b> (6.6% low reviews $\\le 2$ stars). Ratings drop to <b>3.77</b> (1-2 days late), <b>2.47</b> (3-5 days late, 48.4% low reviews), and <b>1.74</b> (>5 days late, 68.6% low reviews). Review timing analysis reveals that <b>70.2% of reviews on late orders were submitted prior to delivery</b> (measuring response to promised date breach rather than post-delivery satisfaction). Kruskal-Wallis test ($H = 10,316.6, p < 10^{-15}$) and Mann-Whitney U ($r = -0.76$) confirm strong conditional association. Multivariate logistic regression indicates an odds ratio of <b>1.064 per delay day</b> ($p < 0.001$, coef = 0.0617), controlling for price, freight ratio, and interstate routing.",
         body_style
     ))
     story.append(Spacer(1, 4))
 
     # Section 6: Action Recommendations & Governance
-    story.append(Paragraph("6. Prioritized Management Action Plan & Governance", h1_style))
+    story.append(Paragraph("7. Prioritized Management Action Plan & Governance", h1_style))
     story.append(Paragraph(f"1. <b>Deploy Partner Ops to {int(p1_summary['seller_count'])} P1 Sellers:</b> Establish dedicated partner management, audit warehouse-to-carrier handover times, and dynamically adjust platform EDD buffers.", bullet_style))
     story.append(Paragraph("2. <b>Restructure Heavy/Bulky Category Logistics:</b> Eliminate flat freight subsidies on categories with freight burden >25% (furniture, bedding); introduce volumetric shipping tiers.", bullet_style))
-    story.append(Paragraph("3. <b>Corridor Routing Consolidation (SP → RJ / BA):</b> Shift long-haul inter-state volume to regional 3PL consolidation hubs, bypassing standard postal bottlenecks.", bullet_style))
+    story.append(Paragraph("3. <b>Corridor Routing Consolidation (SP → RJ / BA):</b> Review post-handover transit times with carriers on these lanes, then pilot regional consolidation before committing to hubs; the data cannot show which party causes the extra transit.", bullet_style))
     story.append(Spacer(1, 3))
 
     # Methodological Integrity Footnote Box

@@ -79,7 +79,7 @@ A non-parametric statistical hypothesis test used to determine whether two indep
 An order containing 2 or more line items (13,680 orders, 13.9% of platform orders).
 
 ### Multi-Seller Order
-An order containing line items fulfilled by two or more distinct merchants (1,278 orders, representing 2,668 order-seller fulfillment engagements).
+An order containing line items fulfilled by two or more distinct merchants (1,278 orders, representing 2,622 order-seller fulfillment engagements).
 
 ### Odds Ratio (OR)
 The ratio of the odds of an event occurring in the presence of an exposure to the odds of it occurring in its absence: $\text{OR} = \exp(\beta)$. An $\text{OR} > 1.0$ indicates increased probability of low customer ratings.

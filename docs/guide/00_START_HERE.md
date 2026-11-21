@@ -39,7 +39,7 @@ All metrics below are derived directly from committed analytical artifacts and S
 | **Commercial Scale** | 99,441 total orders, 96,478 delivered orders (97.02%), R$ 13,591,643.70 GMV, R$ 2,251,909.54 freight. | [`sql/04_kpi_layer.sql`](../../sql/04_kpi_layer.sql) |
 | **Logistics Freight Burden** | 16.57% platform freight burden ($\text{Freight} / \text{GMV}$), rising above 18.2% during 2018 volume peaks. | [`sql/04_kpi_layer.sql`](../../sql/04_kpi_layer.sql) |
 | **Late Delivery Rate** | **6.77%** of delivered orders (6,534 orders) breached promised delivery date under strict calendar date comparison. | [`sql/03_order_item_fact.sql`](../../sql/03_order_item_fact.sql) |
-| **Fulfillment Attribution** | **72.25% of late orders** were handed over to the carrier on-time; only 27.75% involved late merchant dispatch. | [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) |
+| **Fulfillment Attribution** | **72.25% of late (order, seller) pairs** were handed over by the shipping limit, so the delay arose after handover; only 27.75% involved late merchant dispatch. | [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) |
 | **Observable Late-Order Value** | **R$ 1,150,892.13 total late-order value** (GMV: R$ 985,924.34 + Freight: R$ 164,967.79). Late at dispatch (seller-caused): R$ 371,281.14 (32.26%); post-handover delay: R$ 779,610.99 (67.74%). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **Pareto Concentration Lift** | Decile 1 (top 10% sellers) generates 60.78% of GMV but 77.38% of late exposure (**1.27× concentration lift**). | [`sql/06_pareto_analysis.sql`](../../sql/06_pareto_analysis.sql) |
 | **P1 Priority Cohort** | **113 merchants** ($N \ge 30$) account for **R$ 181,377.55** in seller-caused late exposure (48.85% of platform total). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
@@ -99,6 +99,6 @@ python scripts/run_all.py
 1. **Pipeline Execution (`pipeline/run_pipeline.py`):** Ingests raw CSVs, builds staging tables, runs SQL transformations `01_schema.sql` through `07_intervention_priority.sql`, logs row counts and financial invariants.
 2. **Pipeline Verification Gate (`tests/verify_pipeline.py`):** Runs 7 automated assertions on primary key uniqueness, foreign key integrity, non-negative amounts, and bounded rates.
 3. **Documentation Drift Check (`scripts/render_readme_tables.py --check`):** Queries DuckDB views directly and confirms that the dynamic tables in `README.md` and `report/decision_memo.md` match database ground truth.
-4. **Pytest Regression Suite (`pytest`):** Runs all 43 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
+4. **Pytest Regression Suite (`pytest`):** Runs all 46 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
 
-Execution typically completes in 45–50 seconds on modern hardware with 100% green exit code 0.
+Execution takes about 100 seconds (1.5 to 2 minutes) on the author's Windows machine and exits 0 when every stage passes.
