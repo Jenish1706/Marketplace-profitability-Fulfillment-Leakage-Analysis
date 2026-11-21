@@ -72,6 +72,8 @@ The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, ap
 
 **Reading:** the seller-caused gap between 2017 P1 sellers and other sellers was 4.02 pts in 2017 and 1.44 pts in 2018, which is still positive (its interval excludes zero); the change of -2.59 pts is a decrease whose interval excludes zero. About 36% of the 2017 gap remains in 2018. Part of the P1 excess therefore persists, but most of it does not carry over. Shrinkage of this kind is what selecting sellers on a high 2017 rate produces even when underlying performance is stable (regression to the mean), and this check cannot separate that from genuine improvement. The P1 tier is a prioritisation list for review, not evidence that these sellers have a fixed trait.
 
+*Sensitivity:* weighting every seller equally (unweighted means of seller-level rates) gives seller-caused rates of 7.63% → 4.89% for P1 sellers and 2.09% → 3.04% for other sellers, a gap of 5.55 pts in 2017 and 1.85 pts in 2018 (33% remains).
+
 *Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and the all-cause outcome also counts carrier and promise-setting delay that sellers do not control.
 <!-- END_PERSISTENCE_CHECK -->
 

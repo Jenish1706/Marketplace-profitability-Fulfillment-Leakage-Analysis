@@ -101,6 +101,22 @@ def bootstrap_persistence(detail, n_boot=N_BOOT, seed=SEED):
     return out
 
 
+def unweighted_sensitivity(detail):
+    """Seller-caused rates with every seller weighted equally (mean of seller-level rates), point estimates only."""
+    d = detail.copy()
+    for year in ("2017", "2018"):
+        d[f"rate_{year}"] = 100.0 * d[f"seller_late_items_{year}"] / d[f"delivered_items_{year}"]
+    means = d.groupby("tier_2017")[["rate_2017", "rate_2018"]].mean()
+    p1, other = means.loc[P1_LABEL], means.loc[OTHER_LABEL]
+    gap17, gap18 = p1["rate_2017"] - other["rate_2017"], p1["rate_2018"] - other["rate_2018"]
+    return {
+        "p1_2017": float(p1["rate_2017"]), "p1_2018": float(p1["rate_2018"]),
+        "other_2017": float(other["rate_2017"]), "other_2018": float(other["rate_2018"]),
+        "gap_2017": float(gap17), "gap_2018": float(gap18),
+        "share_remaining_pct": float(100.0 * gap18 / gap17) if gap17 else float("nan"),
+    }
+
+
 def _pts(x, signed=False):
     return f"{x:+.2f} pts" if signed else f"{x:.2f} pts"
 
@@ -163,9 +179,17 @@ def render_persistence_markdown(con, n_boot=N_BOOT, seed=SEED):
             "Most of the P1 excess therefore carries over into 2018. Selection on a high 2017 rate can still inflate the 2017 gap "
             "(regression to the mean), so this is one split of one year pair, not proof of a fixed seller trait."
         )
+    u = unweighted_sensitivity(detail)
+    sensitivity = (
+        "*Sensitivity:* weighting every seller equally (unweighted means of seller-level rates) gives seller-caused rates of "
+        f"{u['p1_2017']:.2f}% → {u['p1_2018']:.2f}% for P1 sellers and {u['other_2017']:.2f}% → {u['other_2018']:.2f}% for other sellers, "
+        f"a gap of {u['gap_2017']:.2f} pts in 2017 and {u['gap_2018']:.2f} pts in 2018 ({u['share_remaining_pct']:.0f}% remains)."
+    )
     lines += [
         "",
         reading,
+        "",
+        sensitivity,
         "",
         "*Limits:* sellers that stopped selling after 2017 are not in the 2018 comparison, and the all-cause outcome also counts "
         "carrier and promise-setting delay that sellers do not control.",
