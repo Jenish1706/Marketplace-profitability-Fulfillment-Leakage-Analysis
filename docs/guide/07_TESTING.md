@@ -70,6 +70,10 @@ Verifies statistical methodologies and prevents recurrence of resolved audit def
 - `test_mp06_persistence_cohort_uses_headline_tier_rule`: Asserts the tier rule exists once in SQL, the headline matrix and the 2017 cohort both read it, and the whole-dataset period reproduces the headline tiers.
 - `test_mp06_persistence_bootstrap_is_reproducible`: Asserts the seller-level bootstrap uses at least 2,000 resamples, is deterministic, and brackets its point estimates.
 - `test_mp06_no_unsupported_persistence_claims`: Fails if public docs use the retired persistence wording or quote the retired baseline figure.
+- `test_mp09_post_handover_view_ties_to_headline_attribution`: Asserts `view_post_handover_pairs` reproduces the headline split of late (order, seller) pairs (4,730 post-handover, 72.25% of 6,547) against an independent query.
+- `test_mp09_transit_dominates_promise_on_same_corridor`: Asserts that on every tested corridor (including SP $\to$ SP and SP $\to$ RJ) late post-handover pairs have a transit gap more than three times their promise gap, that the bootstrap is deterministic with at least 2,000 resamples, and that every interval brackets its estimate.
+- `test_mp09_post_handover_blocks_rendered`: Asserts the transit-vs-promise table (guide 09) and its summary (README, memo) equal the freshly rendered text.
+- `test_mp09_no_carrier_attribution_wording`: Fails if public docs use the retired carrier-attribution wording.
 - `test_p18_tier_naming_and_documentation`: Asserts P4 is labeled "P4 - Low Volume / Not Prioritised".
 - `test_open_lead1_unfulfilled_orders_breakdown`: Quantifies 2,963 unfulfilled orders.
 - `test_mp01_clustering_variable_and_sensitivities`: Asserts econometrics script clusters primarily on `seller_id` (2,953 clusters) and includes `seller_state` and `HC1` sensitivities.

@@ -17,7 +17,7 @@ Rather than treating e-commerce datasets as generic Kaggle machine learning exer
 ## 2. The Core Questions It Answers
 
 1. **Macro Inflection & Economics:** How does fulfillment performance evolve as marketplace volume scales, and what is the platform's structural logistics freight burden?
-2. **Attribution & Handover Decoupling:** Are delivery delays caused by merchant handling delays (seller dispatch SLA) or third-party carrier line-haul transit bottlenecks (3PL freight networks)?
+2. **Attribution & Handover Decoupling:** Are delivery delays caused by merchant handling delays (seller dispatch deadline) or do they arise after handover, and if so is that a transit problem or a promise-setting problem?
 3. **Customer Sentiment Econometrics:** Does delivery delay cause a linear decay in customer review scores, or does the automated survey mechanism introduce an information-set confounder?
 4. **Concentration & Commercial Lift:** Are late orders distributed evenly, or do high-volume merchants generate disproportionate fulfillment friction above their GMV share (Pareto concentration lift)?
 5. **Persistence & Intervention Targeting:** Can we isolate a defensible priority tier (P1) of high-friction merchants, and how much of their seller-caused excess carries over from 2017 to 2018?
@@ -34,7 +34,7 @@ All metrics below are derived directly from committed analytical artifacts and S
 | **Logistics Freight Burden** | 16.57% platform freight burden ($\text{Freight} / \text{GMV}$), rising above 18.2% during 2018 volume peaks. | [`sql/04_kpi_layer.sql`](../../sql/04_kpi_layer.sql) |
 | **Late Delivery Rate** | **6.77%** of delivered orders (6,534 orders) breached promised delivery date under strict calendar date comparison. | [`sql/03_order_item_fact.sql`](../../sql/03_order_item_fact.sql) |
 | **Fulfillment Attribution** | **72.25% of late orders** were handed over to the carrier on-time; only 27.75% involved late merchant dispatch. | [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) |
-| **Observable Late-Order Value** | **R$ 1,150,892.13 total late-order value** (GMV: R$ 985,924.34 + Freight: R$ 164,967.79). Seller-caused: R$ 371,281.14 (32.26%); Carrier-caused: R$ 779,610.99 (67.74%). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
+| **Observable Late-Order Value** | **R$ 1,150,892.13 total late-order value** (GMV: R$ 985,924.34 + Freight: R$ 164,967.79). Late at dispatch (seller-caused): R$ 371,281.14 (32.26%); post-handover delay: R$ 779,610.99 (67.74%). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **Pareto Concentration Lift** | Decile 1 (top 10% sellers) generates 60.78% of GMV but 77.38% of late exposure (**1.27× concentration lift**). | [`sql/06_pareto_analysis.sql`](../../sql/06_pareto_analysis.sql) |
 | **P1 Priority Cohort** | **113 merchants** ($N \ge 30$) account for **R$ 181,377.55** in seller-caused late exposure (48.85% of platform total). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **Illustrative Mitigation** | Under an assumed 25% operational mitigation rate, P1 addressable late-order exposure is **R$ 45,344.39**. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
@@ -93,6 +93,6 @@ python scripts/run_all.py
 1. **Pipeline Execution (`pipeline/run_pipeline.py`):** Ingests raw CSVs, builds staging tables, runs SQL transformations `01_schema.sql` through `07_intervention_priority.sql`, logs row counts and financial invariants.
 2. **Pipeline Verification Gate (`tests/verify_pipeline.py`):** Runs 7 automated assertions on primary key uniqueness, foreign key integrity, non-negative amounts, and bounded rates.
 3. **Documentation Drift Check (`scripts/render_readme_tables.py --check`):** Queries DuckDB views directly and confirms that the dynamic tables in `README.md` and `report/decision_memo.md` match database ground truth.
-4. **Pytest Regression Suite (`pytest`):** Runs all 34 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
+4. **Pytest Regression Suite (`pytest`):** Runs all 38 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
 
 Execution typically completes in 45–50 seconds on modern hardware with 100% green exit code 0.

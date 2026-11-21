@@ -99,7 +99,7 @@ The repository is structured into distinct, decoupled subsystems:
    - Implements handover attribution: `is_seller_late_dispatch`, `is_seller_caused_late`, and `is_carrier_caused_late`.
    - Aggregates to order grain in `fact_orders` (99,441 rows).
 4. **`sql/04_kpi_layer.sql`:** Constructs decoupled 6-layer KPI views (`view_macro_kpi_monthly`, `view_unfulfilled_orders_breakdown`).
-5. **`sql/05_root_cause_analysis.sql`:** Produces seller vs carrier delay attribution breakdowns and 417 origin-destination shipping corridor matrices.
+5. **`sql/05_root_cause_analysis.sql`:** Produces seller vs post-handover delay attribution breakdowns, the `view_post_handover_pairs` view behind the transit-vs-promise test (`scripts/run_post_handover_check.py`), and 417 origin-destination shipping corridor matrices.
 6. **`sql/06_pareto_analysis.sql`:** Computes decile-level cumulative distributions and the 1.27× concentration lift over GMV baseline using window functions.
 7. **`sql/07_intervention_priority.sql`:** Classifies sellers with $N \ge 30$ orders into P1–P4 tiers with percentile thresholds computed per period (`view_seller_period_metrics`, then `view_seller_tiers_by_period`, the single copy of the tier rule). The headline `view_seller_intervention_matrix` and the 2017 $\to$ 2018 holdout (`view_seller_persistence_detail`, `view_seller_persistence_check`) both read their tiers from that one view; `scripts/run_persistence_check.py` adds the seller-level bootstrap intervals.
 

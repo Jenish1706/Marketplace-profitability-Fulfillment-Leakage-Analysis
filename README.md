@@ -5,14 +5,14 @@
 [![Python](https://img.shields.io/badge/Python-3.9.13-green.svg)](requirements.txt)
 [![Documentation](https://img.shields.io/badge/Documentation-Guide%2000--09-orange.svg)](docs/guide/00_START_HERE.md)
 [![Report](https://img.shields.io/badge/Report-Executive%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
-[![Tests](https://img.shields.io/badge/Verification-34%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Verification-38%20Passed-brightgreen.svg)](tests/)
 
 ---
 
 ## 1. Executive Business Problem & Approach
 
 As marketplace Gross Merchandise Value (GMV) scales, fulfillment friction frequently compresses contribution economics. This project analyzes **99,441 commercial orders** across Brazilian e-commerce (Olist dataset) to answer three executive operations questions:
-1. **Fulfillment Attribution:** Are delivery delays driven by merchant dispatch breaches or carrier line-haul transit bottlenecks?
+1. **Fulfillment Attribution:** Are delivery delays driven by merchant dispatch breaches, or do they arise after handover, and if so is that a transit problem or a promise-setting problem?
 2. **Customer Sentiment Econometrics:** Does delivery delay degrade customer review scores through linear daily decay, or does automated survey timing create an unarrived-package step function penalty?
 3. **Targeted Intervention:** Can high-friction merchants be isolated into a high-leverage priority cohort rather than penalizing sellers indiscriminately, and how much of that targeting carries over to the following year?
 
@@ -46,6 +46,12 @@ LEVEL 3 — Illustrative Scenarios (Assumed Rates, Not Measured)
 ---
 
 ## 3. Audited Headline Results
+
+### Late-Delivery Attribution: Post-Handover Delay
+
+<!-- BEGIN_POST_HANDOVER_SUMMARY -->
+**Post-handover delay (transit vs promise).** Of 6,547 late (order, seller) pairs, 4,730 (72.25%) were handed over by the shipping limit, so the delay arose after handover; 1,816 were already late at dispatch. On the same corridor these late pairs spent a median of 32 days in transit versus 8 for on-time pairs on SP → RJ (19 versus 3 on SP → SP), while their promises were only 2 days shorter on SP → RJ and 2 on SP → SP, so the extra delay is transit-driven rather than a promise-setting artefact. The dataset has no carrier scans, so it cannot say which party caused the extra transit. Method and corridor table: guide 09.
+<!-- END_POST_HANDOVER_SUMMARY -->
 
 ### Priority Tiers ($N \ge 30$ Orders)
 Sellers are segmented into transparent priority tiers based on seller-caused dispatch delay exposure:

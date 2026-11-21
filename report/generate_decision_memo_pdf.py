@@ -238,7 +238,7 @@ def build_pdf():
         f"However, top-line growth triggered operational friction: late deliveries reached <b>14.3% in Nov 2017</b> and peaked in <b>March 2018</b>. "
         f"Overall freight burden rose to <b>{kpi_row['overall_freight_burden_pct']:.1f}%</b>. Fulfillment friction is concentrated: "
         f"<b>Top 10% of sellers generate {pareto_d1['decile_gmv_share_pct']:.1f}% of GMV and {pareto_d1['decile_exposure_share_pct']:.1f}% of late exposure ({pareto_d1['concentration_lift']:.2f}× lift)</b>. "
-        f"By decomposing seller dispatch from carrier transit, we prioritize <b>{int(p1_summary['seller_count'])} Priority 1 (P1) sellers</b> carrying "
+        f"By decomposing seller dispatch delay from post-handover delay, we prioritize <b>{int(p1_summary['seller_count'])} Priority 1 (P1) sellers</b> carrying "
         f"<b>R$ {p1_summary['total_seller_late_exposure']:,.2f} in seller-caused late exposure</b> ({p1_summary['pct_of_platform_seller_exposure']:.1f}% of platform seller exposure). "
         f"Under our Base Case scenario (25% operational mitigation), targeted partner operations mitigates <b>R$ {p1_summary['scenario_mitigation_base_25pct']:,.2f}</b> in late-order exposure."
     )
@@ -291,9 +291,9 @@ def build_pdf():
     story.append(Spacer(1, 4))
 
     # Section 2: Multi-Dimensional Root Cause Analysis
-    story.append(Paragraph("2. Root-Cause Decomposition: Seller vs Carrier Attribution", h1_style))
+    story.append(Paragraph("2. Root-Cause Decomposition: Seller Dispatch vs Post-Handover Delay", h1_style))
     story.append(Paragraph(
-        "Decomposition of the 6,534 late delivered orders (R$ 1.15M late-order GMV and freight) proves that <b>carrier transit delay, rather than seller handling delay, accounts for 71.0% of late deliveries</b> (5,155 items where sellers handed packages to carriers before the shipping deadline). Seller dispatch breaches account for 29.0% (2,108 items, R$ 371K exposure). In addition, 2,963 unfulfilled orders (1,107 shipped, 625 canceled, 609 unavailable) sit outside the late delivery rate as separate failure classes.",
+        "Decomposition of the 6,534 late delivered orders (R$ 1.15M late-order GMV and freight) shows that <b>72.25% of late (order, seller) pairs (4,730 of 6,547) were handed over by the shipping limit, so the delay arose after handover</b>; on the same corridor these pairs spent far longer in transit than on-time pairs while their promises were only slightly shorter (transit-driven, not a promise-setting artefact; guide 09). The data has no carrier scans, so it cannot say which party caused the extra transit. Seller dispatch breaches account for the rest (2,108 late items, R$ 371K exposure). In addition, 2,963 unfulfilled orders (1,107 shipped, 625 canceled, 609 unavailable) sit outside the late delivery rate as separate failure classes.",
         body_style
     ))
     story.append(Spacer(1, 3))
@@ -307,10 +307,10 @@ def build_pdf():
          Paragraph("2,108 late items breached shipping limit", table_cell_style),
          Paragraph("R$ 371.3K", table_cell_center),
          Paragraph("Concentrated in high-volume merchants with deficient dispatch capacity", table_cell_style)],
-        [Paragraph("<b>Carrier Transit Delay</b>", table_cell_bold),
-         Paragraph("5,155 late items met dispatch limit", table_cell_style),
+        [Paragraph("<b>Post-Handover Delay</b>", table_cell_bold),
+         Paragraph("5,155 late items handed over by the limit", table_cell_style),
          Paragraph("R$ 779.6K", table_cell_center),
-         Paragraph("Long-haul postal routing bottlenecks across interstate lanes (e.g., SP -> RJ/BA)", table_cell_style)],
+         Paragraph("Long transit after handover on interstate lanes (e.g., SP -> RJ/BA); cause not observable", table_cell_style)],
         [Paragraph("<b>Category Logistics Profile</b>", table_cell_bold),
          Paragraph("Bulky categories with freight ratio >= 30%", table_cell_style),
          Paragraph("R$ 1.86M GMV", table_cell_center),
@@ -318,7 +318,7 @@ def build_pdf():
         [Paragraph("<b>Corridor Transit Bottlenecks</b>", table_cell_bold),
          Paragraph("SP -> RJ interstate corridor", table_cell_style),
          Paragraph("R$ 138.0K", table_cell_center),
-         Paragraph("High volume corridor suffering carrier transit delays despite prompt seller handoff", table_cell_style)]
+         Paragraph("High volume corridor with long post-handover transit despite prompt seller handoff", table_cell_style)]
     ]
     t_rc = Table(rc_data, colWidths=[110, 140, 65, 217])
     t_rc.setStyle(TableStyle([

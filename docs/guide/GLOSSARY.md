@@ -15,11 +15,11 @@ The atomic level of detail represented by a single row in a database table. In t
 ### AOV (Average Order Value)
 The mean commercial value of completed transactions: $\text{AOV} = \text{GMV} / N_{\text{orders}}$. For delivered orders in Olist, platform AOV is R\$ 140.88.
 
-### Carrier-Caused Late
-An operational failure mode where the merchant delivered the parcel to the carrier on or before the contractual `shipping_limit_date`, but the customer received the parcel after the `order_estimated_delivery_date`. Represents 72.25% of platform late items.
+### Post-Handover Delay
+A late delivery where the merchant handed the parcel over on or before the `shipping_limit_date`, but the customer received it after the `order_estimated_delivery_date`. Represents 72.25% of late (order, seller) pairs. The SQL identifier `is_carrier_caused_late` is kept for compatibility, but the data cannot name the responsible party (carrier, last-mile or customer availability): the second gate is the platform's promised date, not a carrier SLA.
 
-### Carrier Transit SLA
-The operational delivery window expected of third-party couriers, measured from the time the parcel is handed over (`order_delivered_carrier_date`) until physical customer receipt (`order_delivered_customer_date`).
+### Post-Handover Transit
+The time from handover (`order_delivered_carrier_date`) until physical customer receipt (`order_delivered_customer_date`), compared with the promise length (purchase to `order_estimated_delivery_date`) in the transit-vs-promise test in guide 09. There is no carrier SLA in this dataset.
 
 ### Cluster-Robust Standard Errors
 A variance-covariance estimator (Liang-Zeger sandwich estimator) that relaxes the assumption of independent and identically distributed ($i.i.d.$) errors by allowing arbitrary correlation between observations within the same cluster. In this project, standard errors are clustered at the merchant level (`seller_id`, 2,953 clusters).

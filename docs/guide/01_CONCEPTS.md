@@ -208,7 +208,7 @@ Order Dispatched ──► Automated Review Email Fired ──► Customer Submi
 ```
 
 ### Tiny Worked Example
-- Suppose long-haul interstate shipments (SP $\to$ RJ) have both higher carrier delays and lower review ratings due to transit damage. If we do not control for shipping lane, we might attribute transit damage dissatisfaction to seller processing delay.
+- Suppose long-haul interstate shipments (SP $\to$ RJ) have both higher post-handover delays and lower review ratings due to transit damage. If we do not control for shipping lane, we might attribute transit damage dissatisfaction to seller processing delay.
 
 ### Implementation Link
 - Analyzed in [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) and [`scripts/run_review_econometrics.py`](../../scripts/run_review_econometrics.py#L30-L75).

@@ -32,7 +32,7 @@ SELECT
     ROUND(100.0 * SUM(CASE WHEN oi.is_late = 1 THEN 1 ELSE 0 END) / 
           NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS late_item_rate_pct,
     
-    -- P0-2 Decomposition: Seller-caused vs Carrier-caused fulfillment delay
+    -- P0-2 Decomposition: Seller dispatch delay vs post-handover delay (carrier_* column names kept for compatibility)
     SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN 1 ELSE 0 END) AS seller_late_items,
     ROUND(100.0 * SUM(CASE WHEN oi.is_seller_caused_late = 1 THEN 1 ELSE 0 END) / 
           NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS seller_late_item_rate_pct,
@@ -135,7 +135,7 @@ SELECT
     ROUND(100.0 * SUM(CASE WHEN oi.is_late = 1 THEN 1 ELSE 0 END) / 
           NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS late_delivery_rate_pct,
     
-    -- P0-2 Decomposition: Carrier vs Seller Breakdown by Corridor
+    -- P0-2 Decomposition: Post-handover vs Seller Dispatch Breakdown by Corridor
     SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN 1 ELSE 0 END) AS carrier_late_items,
     ROUND(100.0 * SUM(CASE WHEN oi.is_carrier_caused_late = 1 THEN 1 ELSE 0 END) / 
           NULLIF(SUM(CASE WHEN oi.is_delivered = 1 THEN 1 ELSE 0 END), 0), 2) AS carrier_late_rate_pct,
@@ -175,3 +175,54 @@ SELECT
 FROM fact_order_items
 GROUP BY order_value_band, freight_burden_band
 ORDER BY order_value_band, freight_burden_band;
+
+-- ----------------------------------------------------------------------------
+-- 6. POST-HANDOVER DELAY: TRANSIT VS PROMISE (MP-09)
+-- Terminology: a late delivery whose seller handed the parcel over by
+-- shipping_limit_date is called a POST-HANDOVER delay. The identifier
+-- is_carrier_caused_late is kept for compatibility, but the data cannot name the
+-- party responsible: the second gate is the platform's PROMISED date
+-- (order_estimated_delivery_date), not a carrier SLA, and there are no carrier scans.
+-- This view supports the test that separates "the leg took long" (transit) from
+-- "the promise was tight" (promise-setting).
+-- One row per delivered (order, seller) pair with a recorded handover date that is
+-- not after the delivery date. Day counts are date-level (same convention as is_late).
+--   promise_days      = purchase date  -> promised date
+--   pre_handover_days = purchase date  -> handover date
+--   transit_days      = handover date  -> delivery date
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW view_post_handover_pairs AS
+WITH pairs AS (
+    SELECT
+        order_id,
+        seller_id,
+        ANY_VALUE(corridor) AS corridor,
+        CAST(MIN(order_purchase_timestamp) AS DATE) AS purchase_date,
+        CAST(MIN(order_delivered_carrier_date) AS DATE) AS handover_date,
+        CAST(MIN(order_delivered_customer_date) AS DATE) AS delivered_date,
+        CAST(MIN(order_estimated_delivery_date) AS DATE) AS promised_date,
+        MAX(is_late) AS is_late,
+        MAX(is_seller_caused_late) AS seller_caused
+    FROM fact_order_items
+    WHERE is_delivered = 1
+    GROUP BY order_id, seller_id
+)
+SELECT
+    order_id,
+    seller_id,
+    corridor,
+    purchase_date,
+    handover_date,
+    delivered_date,
+    promised_date,
+    CASE
+        WHEN is_late = 0 THEN 'on_time'
+        WHEN seller_caused = 1 THEN 'late_seller_dispatch'
+        ELSE 'late_post_handover'
+    END AS delay_class,
+    DATE_DIFF('day', purchase_date, promised_date) AS promise_days,
+    DATE_DIFF('day', purchase_date, handover_date) AS pre_handover_days,
+    DATE_DIFF('day', handover_date, delivered_date) AS transit_days
+FROM pairs
+WHERE handover_date IS NOT NULL
+  AND handover_date <= delivered_date;

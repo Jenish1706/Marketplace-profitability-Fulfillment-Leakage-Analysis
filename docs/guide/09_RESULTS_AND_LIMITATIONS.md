@@ -14,12 +14,45 @@ All findings are derived directly from reproducible SQL views and statistical sc
 |---|---|---|---|
 | **RES-01** | Platform Late Delivery Baseline | **6.77%** ($6,534 / 96,478$ delivered orders). Exact finite-sample parameter under date casting. | [`sql/03_order_item_fact.sql`](../../sql/03_order_item_fact.sql) |
 | **RES-02** | Observable Late-Order Value ($E_{\text{late}}$) | **R\$ 1,150,892.13 total** (GMV: R\$ 985,924.34 + Freight: R\$ 164,967.79), representing 8.47% of platform gross flow. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
-| **RES-03** | Logistics Fulfillment Attribution | **72.25% Carrier-Caused** ($4,730 / 6,547$ late items, R\$ 779,610.99); **27.75% Seller-Caused** ($1,817 / 6,547$ items, R\$ 371,281.14). | [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) |
+| **RES-03** | Late-Delivery Attribution | **72.25% post-handover delay** ($4{,}730 / 6{,}547$ late (order, seller) pairs; R\$ 779,610.99 exposure); **27.75% late at dispatch** ($1{,}817 / 6{,}547$ pairs, including one pair with no recorded handover date; R\$ 371,281.14 exposure). The transit-vs-promise table below shows the post-handover leg is long, not merely promised tightly. | [`sql/05_root_cause_analysis.sql`](../../sql/05_root_cause_analysis.sql) |
 | **RES-04** | Pareto Decile 1 Concentration Lift | **60.78% GMV share** vs **77.38% late exposure share** $\implies$ **1.27× concentration lift** across top 310 merchants. | [`sql/06_pareto_analysis.sql`](../../sql/06_pareto_analysis.sql) |
 | **RES-05** | P1 Intervention Priority Cohort | **113 merchants** account for **R\$ 181,377.55** in seller late exposure (48.85% of platform seller exposure). Modeled addressable exposure: **R\$ 45,344.39** (Base 25%). | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **RES-06** | Out-of-Sample Holdout Persistence | Partial persistence: the 2017 P1 cohort's seller-caused excess shrinks but stays positive in 2018. Rates, gaps and bootstrap intervals are rendered in Section 2 below. | [`sql/07_intervention_priority.sql`](../../sql/07_intervention_priority.sql) |
 | **RES-07** | Review Survey Mechanism Confounder | **70.10%** of late-order reviews were submitted before delivery ($3.73$ days late at survey vs $13.82$ days at delivery). | [`scripts/run_review_econometrics.py`](../../scripts/run_review_econometrics.py) |
 | **RES-08** | Non-Receipt Econometric Penalty | Binary non-receipt at survey (`undelivered_at_review`) yields $\text{OR} = \mathbf{33.63\times}$ ($p < 10^{-15}$, cluster-robust $\text{SE} = 0.0506$) and OLS rating drop of $\mathbf{-2.5125\text{ stars}}$ ($\text{SE} = 0.0252$). | [`scripts/run_review_econometrics.py`](../../scripts/run_review_econometrics.py) |
+
+---
+
+The attribution in RES-03 rests on the platform's *promised* date, not a carrier SLA, so "handed over on time but delivered late" mixes how long the leg took with how tight the promise was. This test separates the two:
+
+<!-- BEGIN_POST_HANDOVER_SPLIT -->
+### Post-Handover Delay: Transit vs Promise
+
+Scope: 4,730 late post-handover (order, seller) pairs (seller handed over by `shipping_limit_date`, delivery after the promised date) against on-time pairs on the same corridor. 1,816 late pairs were already late at dispatch and 1 late pair(s) have no recorded handover date; both are outside this table. Days are date-level. Intervals are 95% bootstrap percentile intervals (2,000 resamples, fixed seed).
+
+**Median days, late post-handover pairs vs on-time pairs (gap, interval)**
+
+| Corridor | Pairs (late / on-time) | Purchase → promised date | Purchase → handover | Handover → delivery (transit) |
+|---|---|---|---|---|
+| SP -> SP | 845 / 29,733 | 16 vs 18 (-2 [-2, -1]) | 3 vs 2 (+1 [+0, +1]) | **19 vs 3** (+16 [+15, +17]) |
+| SP -> RJ | 917 / 7,117 | 23 vs 25 (-2 [-3, -2]) | 3 vs 2 (+1 [+0, +1]) | **32 vs 8** (+24 [+22, +25]) |
+| SP -> MG | 286 / 7,164 | 21 vs 24 (-3 [-3, -2]) | 2 vs 2 (+0 [+0, +1]) | **24 vs 7** (+17 [+16, +18]) |
+| SP -> BA | 260 / 2,043 | 26 vs 30 (-4 [-5, -3]) | 2 vs 2 (+0 [+0, +1]) | **31 vs 13** (+18 [+17, +19]) |
+
+**Would the late pairs have been on time? (descriptive counterfactual)**
+
+| Corridor | Late post-handover pairs | On time with the corridor's typical transit | On time with the corridor's typical promise |
+|---|---|---|---|
+| SP -> SP | 845 | **90.2% [88.2%, 93.7%]** (typical transit 4 d) | 34.7% [31.8%, 37.9%] (typical promise 18 d) |
+| SP -> RJ | 917 | **99.5% [99.0%, 99.9%]** (typical transit 9 d) | 14.9% [12.6%, 17.3%] (typical promise 25 d) |
+| SP -> MG | 286 | **99.3% [98.3%, 100.0%]** (typical transit 7 d) | 35.3% [29.4%, 40.6%] (typical promise 24 d) |
+| SP -> BA | 260 | **99.2% [98.1%, 100.0%]** (typical transit 14 d) | 28.5% [23.1%, 33.8%] (typical promise 30 d) |
+| All 71 corridors with at least 100 pairs (point estimates) | 4,452 | 97.3% | 25.1% |
+
+**Reading:** late pairs spent far longer in transit than on-time pairs on the same corridor, while their promises were only slightly shorter; giving them the corridor's typical transit would have put most of them on time, whereas a typical promise would have rescued few. The delay is therefore transit-driven rather than a promise-setting artefact.
+
+*Limits:* the dataset has no carrier scans, so a long post-handover leg cannot be attributed to the carrier, to last-mile or to customer availability; handover dates are recorded by sellers, so a manifest scanned before the parcel physically left would hide dispatch delay inside transit; the counterfactuals are descriptive, not causal.
+<!-- END_POST_HANDOVER_SPLIT -->
 
 ---
 
@@ -61,7 +94,7 @@ The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, ap
 ## 3. Threats to Validity
 
 ### Internal Validity
-- **Unobserved Handover Scans:** We evaluate seller dispatch SLA against `shipping_limit_date` using `order_delivered_carrier_date`. If sellers generate shipping labels electronically prior to physical carrier handover (manifest pre-scanning), actual seller delay could be masked as carrier transit time.
+- **Unobserved Handover Scans:** We evaluate seller dispatch SLA against `shipping_limit_date` using `order_delivered_carrier_date`. If sellers generate shipping labels electronically prior to physical carrier handover (manifest pre-scanning), actual seller delay could be masked as post-handover transit time.
 - **Survey Trigger Timing:** Olist automated review requests around the estimated delivery date. This mechanism explains why pre-delivery reviews correlate with delivery lateness, but survey response rate itself may be subject to voluntary response bias (unhappy customers are more motivated to respond).
 
 ### External Validity

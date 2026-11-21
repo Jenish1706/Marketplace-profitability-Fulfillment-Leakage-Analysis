@@ -133,7 +133,7 @@ def build_pdf():
     story.append(Paragraph(
         "• <b>Level 1: Observable Late-Order GMV & Freight:</b> Total late delivered order value <i>E</i><sub>late</sub> = R$ 1.15M "
         "(GMV R$ 985,924.34 + Freight R$ 164,967.79) across 6,534 date-level late orders (6.77% late delivery rate). Decomposed into "
-        "<b>Seller-Caused Late Exposure</b> (R$ 371,281.14, 32.26%) and <b>Carrier-Caused Late Exposure</b> (R$ 779,610.99, 67.74%).",
+        "<b>Seller-Caused Late Exposure</b> (R$ 371,281.14, 32.26%) and <b>Post-Handover-Delay Late Exposure</b> (R$ 779,610.99, 67.74%).",
         bullet_style
     ))
     story.append(Paragraph(
@@ -162,9 +162,9 @@ def build_pdf():
             Paragraph("Eliminates fan-out distortion; reconciles true 97.02% delivery rate.", tbl_cell)
         ],
         [
-            Paragraph("<b>Seller vs Carrier Attribution</b>", tbl_cell),
-            Paragraph("Decomposed late deliveries into seller dispatch deadline vs carrier transit", tbl_cell),
-            Paragraph("72.3% of late deliveries met seller dispatch limit; delay is carrier-driven.", tbl_cell)
+            Paragraph("<b>Seller Dispatch vs Post-Handover Delay</b>", tbl_cell),
+            Paragraph("Decomposed late deliveries into seller dispatch deadline vs delay after handover", tbl_cell),
+            Paragraph("72.3% of late (order, seller) pairs met the seller dispatch limit; the delay arose after handover and is transit-driven, not a promise-setting artefact.", tbl_cell)
         ],
         [
             Paragraph("<b>Review Timing Confounder</b>", tbl_cell),

@@ -97,7 +97,8 @@ SELECT
         ELSE 0 
     END AS is_late,
     
-    -- P0-2 Decomposition: Seller Dispatch Delay vs Carrier Transit Delay
+    -- P0-2 Decomposition: Seller Dispatch Delay vs Post-Handover Delay (is_carrier_caused_late = late although the
+    -- seller handed over by shipping_limit_date; identifier kept for compatibility, the responsible party is not observable)
     CASE 
         WHEN o.order_delivered_carrier_date IS NOT NULL AND o.order_delivered_carrier_date > oi.shipping_limit_date 
         THEN 1 
@@ -218,7 +219,8 @@ SELECT
         ELSE 0 
     END AS is_late,
     
-    -- P0-2 Decomposition: Seller Dispatch Delay vs Carrier Transit Delay
+    -- P0-2 Decomposition: Seller Dispatch Delay vs Post-Handover Delay (is_carrier_caused_late = late although the
+    -- seller handed over by shipping_limit_date; identifier kept for compatibility, the responsible party is not observable)
     CASE 
         WHEN o.order_delivered_carrier_date IS NOT NULL AND o.order_delivered_carrier_date > oia.max_shipping_limit_date 
         THEN 1 

@@ -13,7 +13,7 @@ Between January 2017 and August 2018, the marketplace achieved strong commercial
 1. **Fulfillment Deterioration Spikes:** Platform late delivery rates surged during high-volume periods, spiking to **12.40%** during Black Friday 2017 and collapsing to **18.96% in March 2018** (nearly 1 in 5 orders delivered late under calendar date comparison).
 2. **Structural Logistics Cost Inflation:** Overall platform freight burden reached **16.57%** (R$ 2.25M freight on R$ 13.59M GMV), rising above **18.2%** by mid-2018, eroding contribution economics.
 3. **Severe Exposure Concentration:** Operational failure is concentrated in high-volume merchants. **Decile 1 (top 10% of sellers, 310 sellers) accounts for 60.78% of GMV and 77.38% of total late-order GMV and freight (1.27× lift)**.
-4. **Targeted Operational Mitigation:** By decoupling seller dispatch delays from carrier transit delays, we identify a prioritized cohort of **113 Priority 1 (P1) sellers** representing **R$ 181,377.55 in seller-caused late exposure** (48.85% of platform seller-caused exposure). Under our Base Case scenario (25% operational mitigation), targeted operations management addresses **R$ 45,344.39 in addressable late-order GMV exposure**.
+4. **Targeted Operational Mitigation:** By decoupling seller dispatch delays from post-handover delays, we identify a prioritized cohort of **113 Priority 1 (P1) sellers** representing **R$ 181,377.55 in seller-caused late exposure** (48.85% of platform seller-caused exposure). Under our Base Case scenario (25% operational mitigation), targeted operations management addresses **R$ 45,344.39 in addressable late-order GMV exposure**.
 
 ---
 
@@ -32,9 +32,13 @@ Longitudinal analysis demonstrates that platform logistics networks strained und
 
 Fulfillment leakage is driven by three distinct operational mechanisms:
 1. **Seller Volume vs Severity Decoupling:** Uncontrolled rankings mistake low-volume noise for business liability. Sellers with 100% late delivery rates on 2 orders generate negligible impact (R$ 72 exposure). Conversely, high-volume operational sellers (e.g., Seller `4a3ca93a...`, 1,806 orders, 16.0% late rate) generate **R$ 29,420.57 in late exposure** alone.
-2. **Seller vs Carrier Delay Attribution:** In **72.25% of late orders** (4,730 of 6,547 orders), the merchant handed over to the carrier on or before `shipping_limit_date`. Platform late exposure is dominated by carrier transit delays (R$ 779,610.99, 67.74%), while seller dispatch breaches account for R$ 371,281.14 (32.26%).
+2. **Seller Dispatch vs Post-Handover Delay Attribution:** In **72.25% of late (order, seller) pairs** (4,730 of 6,547), the merchant handed the parcel over on or before `shipping_limit_date`, so the delay arose after handover. Platform late exposure is dominated by these post-handover delays (R$ 779,610.99, 67.74%), while seller dispatch breaches account for R$ 371,281.14 (32.26%). The test below shows the post-handover leg took far longer than on-time deliveries on the same corridor, not merely against a tighter promise.
 3. **Category Structural Deficits:** Categories such as `furniture_decor`, `office_furniture`, and `bed_bath_table` exhibit heavy physical profiles (average volume >25,000 cm³, weight >3 kg) driving structural freight burdens of **20% to 25%**, severely penalizing basket economics.
 4. **Cross-Regional Bottlenecks:** Intra-state deliveries within São Paulo (SP $\to$ SP) operate efficiently (freight burden 13.21%, late rate 6.10%). However, long-haul interstate corridors (SP $\to$ RJ, SP $\to$ BA, SP $\to$ MG) account for the bulk of platform delay, with SP $\to$ RJ generating **R$ 197K in late-order GMV and freight** with a 14.85% late delivery rate.
+
+<!-- BEGIN_POST_HANDOVER_SUMMARY -->
+**Post-handover delay (transit vs promise).** Of 6,547 late (order, seller) pairs, 4,730 (72.25%) were handed over by the shipping limit, so the delay arose after handover; 1,816 were already late at dispatch. On the same corridor these late pairs spent a median of 32 days in transit versus 8 for on-time pairs on SP → RJ (19 versus 3 on SP → SP), while their promises were only 2 days shorter on SP → RJ and 2 on SP → SP, so the extra delay is transit-driven rather than a promise-setting artefact. The dataset has no carrier scans, so it cannot say which party caused the extra transit. Method and corridor table: guide 09.
+<!-- END_POST_HANDOVER_SUMMARY -->
 
 ---
 
@@ -84,7 +88,7 @@ The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, ap
 We distinguish strictly between **observable late-order metrics** and **illustrative scenario-based mitigation models (assumed rates, not measured)**:
 - **Observable Platform Late Exposure ($E_{late}$):** R$ 985,924.34 (GMV) + R$ 164,967.79 (Freight) = **R$ 1,150,892.13** (8.47% of platform gross flow).
   - Seller-Caused Late Exposure: **R$ 371,281.14** (32.26%)
-  - Carrier-Caused Late Exposure: **R$ 779,610.99** (67.74%)
+  - Post-Handover-Delay Late Exposure: **R$ 779,610.99** (67.74%)
 - **P1 Seller Mitigation Modeling (113 Sellers, R$ 181,377.55 Seller Exposure):**
   - **Conservative Scenario (10% Mitigation):** **R$ 18,137.76**
   - **Base Case Scenario (25% Mitigation):** **R$ 45,344.39**
@@ -96,7 +100,7 @@ We distinguish strictly between **observable late-order metrics** and **illustra
 
 1. **Deploy Dedicated Partner Operations to P1 Cohort (Immediate):** Assign partner managers to the 113 high-exposure sellers to enforce mandatory 24–48hr carrier dispatch SLAs, dynamic Estimated Delivery Date (EDD) lead-time adjustments in checkout algorithms, and inventory staging audits.
 2. **Restructure Bulky Category Shipping Policies:** For structurally freight-heavy categories (`furniture_decor`, `office_furniture`), eliminate subsidized flat rates and introduce volumetric freight tiers or mandatory regional fulfillment.
-3. **Corridor Optimization on SP $\to$ RJ/BA:** Because 72.25% of delay items are carrier-transit delays, seller SLAs alone cannot solve regional failure. Establish regional sorting hubs and multi-carrier 3PL line-haul consolidation for São Paulo sellers shipping into Rio de Janeiro and the Northeast.
+3. **Corridor Optimization on SP $\to$ RJ/BA:** Because 72.25% of late (order, seller) pairs were delayed after handover, seller SLAs alone cannot solve regional failure. The data cannot show which party causes the extra transit, so first review post-handover transit times with the carriers on these lanes, then pilot regional consolidation for São Paulo sellers shipping into Rio de Janeiro and the Northeast before committing to sorting hubs.
 4. **Automated Governance Alerts:** Implement automated SLA warnings in the seller portal when a merchant's rolling 30-day seller dispatch delay rate exceeds 12%.
 
 ---
@@ -105,4 +109,4 @@ We distinguish strictly between **observable late-order metrics** and **illustra
 
 1. **Date-Level Precision:** Lateness is evaluated strictly at calendar date granularity, eliminating the midnight-boundary distortion that previously misclassified 1,292 same-day on-time deliveries as late.
 2. **Pure Observational Diagnostics:** Zero fabricated profit metrics or unobserved platform overheads. All metrics reconcile to the penny against DuckDB fact tables.
-3. **Carrier Visibility Limitation:** Public dataset lacks intermediate sorting hub scans or first-attempt delivery timestamps. All carrier transit calculations reflect dock-to-doorstep duration.
+3. **Post-Handover Visibility Limitation:** Public dataset lacks intermediate sorting hub scans or first-attempt delivery timestamps, and the second gate is the platform's promised date, not a carrier SLA. All post-handover transit calculations reflect handover-to-doorstep duration, so they cannot attribute the delay to the carrier, last-mile or customer availability.

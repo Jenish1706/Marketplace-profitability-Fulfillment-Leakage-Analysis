@@ -9,7 +9,7 @@
 ## Table of Decision Records
 1. [ADR-01: DuckDB as Embedded Analytical Processing Engine](#adr-01-duckdb-as-embedded-analytical-processing-engine)
 2. [ADR-02: Calendar Date Casting vs Timestamp Precision for Delivery Lateness](#adr-02-calendar-date-casting-vs-timestamp-precision-for-delivery-lateness)
-3. [ADR-03: Two-Gate Fulfillment Attribution (Seller Dispatch vs Carrier Transit)](#adr-03-two-gate-fulfillment-attribution-seller-dispatch-vs-carrier-transit)
+3. [ADR-03: Two-Gate Fulfillment Attribution (Seller Dispatch vs Post-Handover Delay)](#adr-03-two-gate-fulfillment-attribution-seller-dispatch-vs-post-handover-delay)
 4. [ADR-04: Customer Information-Set Formulation at Review Survey Submission](#adr-04-customer-information-set-formulation-at-review-survey-submission)
 5. [ADR-05: Three-Level Economic Exposure Framework vs "Recovered Cash" Claims](#adr-05-three-level-economic-exposure-framework-vs-recovered-cash-claims)
 6. [ADR-06: Primary Cluster-Robust Standard Errors on `seller_id`](#adr-06-primary-cluster-robust-standard-errors-on-seller_id)
@@ -41,13 +41,13 @@
 
 ---
 
-### ADR-03: Two-Gate Fulfillment Attribution (Seller Dispatch vs Carrier Transit)
-- **Context:** Initial exploratory analysis attributed 100% of delivery delays to merchants. However, logistics fulfillment consists of two distinct operational gates: merchant fulfillment and courier line-haul transit.
-- **Decision:** Decompose delivery delay into explicit handover flags: `is_seller_late_dispatch` (against `shipping_limit_date`) and `is_carrier_caused_late` (handed over on time but delivered late).
+### ADR-03: Two-Gate Fulfillment Attribution (Seller Dispatch vs Post-Handover Delay)
+- **Context:** Initial exploratory analysis attributed 100% of delivery delays to merchants. However, fulfillment has two gates: merchant dispatch against `shipping_limit_date`, and everything after handover, judged against the platform's promised date (`order_estimated_delivery_date`), which is not a carrier SLA.
+- **Decision:** Decompose delivery delay into explicit handover flags: `is_seller_late_dispatch` (against `shipping_limit_date`) and the post-handover flag (handed over on time but delivered late; the identifier `is_carrier_caused_late` is kept for compatibility, but the responsible party is not observable). A transit-vs-promise test (guide 09) checks whether post-handover delay reflects a long leg or a tight promise.
 - **Alternatives Considered:**
-  - *Sole Merchant Accountability:* Rejected because 72.25% of late orders were handed over to carriers on time; penalizing sellers would misdirect operational resources.
-  - *Sole Carrier Accountability:* Rejected because 27.75% of late deliveries involved seller dispatch failure.
-- **Consequences:** Enables targeted, decoupled operational playbooks: Seller Operations enforces dispatch SLAs on the 27.75% merchant delays, while Logistics negotiates carrier routing and sorting hubs on the 72.25% transit delays.
+  - *Sole Merchant Accountability:* Rejected because 72.25% of late (order, seller) pairs were handed over on time; penalizing sellers would misdirect operational resources.
+  - *Sole Carrier Accountability:* Rejected because 27.75% of late pairs involved seller dispatch failure (or no recorded handover), and because the dataset has no carrier scans to name a responsible party.
+- **Consequences:** Enables decoupled operational playbooks: Seller Operations enforces dispatch deadlines on the 27.75% of late pairs late at dispatch, while Logistics reviews post-handover transit on the 72.25% delayed after handover. The transit-vs-promise test finds those late pairs spent far longer in transit than on-time pairs on the same corridor, so the delay is transit-driven rather than a promise-setting artefact.
 
 ---
 

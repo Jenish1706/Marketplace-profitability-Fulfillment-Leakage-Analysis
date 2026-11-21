@@ -79,13 +79,13 @@ class TestAuditFixes(unittest.TestCase):
         self.assertEqual(total_late, 6534, f"Expected 6,534 date-level late orders, got {total_late}")
 
     def test_p02_seller_vs_carrier_attribution(self):
-        """P0-2 Fix Test: Split late deliveries into seller dispatch breach vs carrier transit delay."""
+        """P0-2 Fix Test: Split late deliveries into seller dispatch breach vs post-handover delay."""
         # Check that fact_order_items contains the explicit attribution columns
         cols = [col[0] for col in self.con.execute("DESCRIBE fact_order_items").fetchall()]
         self.assertIn("is_seller_caused_late", cols, "fact_order_items must contain is_seller_caused_late")
         self.assertIn("is_carrier_caused_late", cols, "fact_order_items must contain is_carrier_caused_late")
 
-        # Verify that carrier transit delay is attributed to carrier, not seller
+        # Verify that post-handover delay is not attributed to the seller
         q = """
         SELECT 
             SUM(is_late) as total_late,
@@ -96,7 +96,7 @@ class TestAuditFixes(unittest.TestCase):
         """
         total_late, seller_late, carrier_late = self.con.execute(q).fetchone()
         self.assertEqual(seller_late + carrier_late, total_late, "Seller + carrier late items must equal total late items")
-        self.assertGreater(carrier_late, seller_late, "Carrier transit delay accounts for majority (~71%) of late items")
+        self.assertGreater(carrier_late, seller_late, "Post-handover delay accounts for the majority (~71%) of late items")
 
     def test_p03_reviews_answered_before_delivery(self):
         """P0-3 Fix Test: Verify review submission timing relative to package delivery and forward-looking bias."""
@@ -576,6 +576,75 @@ class TestAuditFixes(unittest.TestCase):
             log_text = f.read()
         self.assertIn("Total Deletions", log_text)
         self.assertIn("Total Space Freed", log_text)
+
+    def test_mp09_post_handover_view_ties_to_headline_attribution(self):
+        """MP-09: view_post_handover_pairs reproduces the headline split of late (order, seller) pairs."""
+        headline_late = self.con.execute(
+            "SELECT COUNT(*) FROM (SELECT 1 FROM fact_order_items WHERE is_late = 1 GROUP BY order_id, seller_id)").fetchone()[0]
+        independent_post_handover = self.con.execute("""
+            SELECT COUNT(*) FROM (
+                SELECT order_id, seller_id FROM fact_order_items WHERE is_delivered = 1
+                GROUP BY order_id, seller_id
+                HAVING MAX(is_late) = 1 AND MAX(is_seller_caused_late) = 0 AND MIN(order_delivered_carrier_date) IS NOT NULL)""").fetchone()[0]
+        classes = dict(self.con.execute("SELECT delay_class, COUNT(*) FROM view_post_handover_pairs GROUP BY 1").fetchall())
+        self.assertEqual(classes["late_post_handover"], independent_post_handover)
+        self.assertEqual(classes["late_post_handover"], 4730)
+        excluded = headline_late - classes["late_post_handover"] - classes["late_seller_dispatch"]
+        self.assertLessEqual(excluded, 5, "only pairs without a usable handover date may fall outside the view")
+        self.assertAlmostEqual(100.0 * classes["late_post_handover"] / headline_late, 72.25, places=1)
+
+    def test_mp09_transit_dominates_promise_on_same_corridor(self):
+        """MP-09: late post-handover pairs have far longer transit but only slightly shorter promises than on-time pairs
+        on the same corridor (SP->SP and SP->RJ at least); the bootstrap is reproducible and brackets its estimates."""
+        from scripts.run_post_handover_check import N_BOOT, compute
+
+        self.assertGreaterEqual(N_BOOT, 2000)
+        first, second = compute(self.con), compute(self.con)
+        self.assertEqual(first, second, "a fixed seed must make the bootstrap deterministic")
+        by_corridor = {c["corridor"]: c for c in first["corridors"]}
+        for required in ("SP -> SP", "SP -> RJ"):
+            self.assertIn(required, by_corridor)
+        for name, c in by_corridor.items():
+            self.assertGreater(c["transit_gap"], 3 * abs(c["promise_gap"]), f"{name}: transit gap must dwarf the promise gap")
+            self.assertGreater(c["share_transit"], c["share_promise"], f"{name}: typical transit must rescue more late pairs than a typical promise")
+            for point, interval in (("transit_gap", "transit_gap_ci"), ("promise_gap", "promise_gap_ci"),
+                                    ("share_transit", "share_transit_ci"), ("share_promise", "share_promise_ci")):
+                lo, hi = c[interval]
+                self.assertLessEqual(lo, c[point] + 1e-9, f"{name} {point} below its interval")
+                self.assertLessEqual(c[point], hi + 1e-9, f"{name} {point} above its interval")
+
+    def test_mp09_post_handover_blocks_rendered(self):
+        """MP-09: the transit-vs-promise table (guide 09) and its summary (README, memo) equal the freshly rendered text."""
+        from scripts.run_post_handover_check import render_split_markdown, render_summary_markdown
+
+        split, summary = render_split_markdown(self.con), render_summary_markdown(self.con)
+        expected = {
+            os.path.join("docs", "guide", "09_RESULTS_AND_LIMITATIONS.md"): ("POST_HANDOVER_SPLIT", split),
+            "README.md": ("POST_HANDOVER_SUMMARY", summary),
+            os.path.join("report", "decision_memo.md"): ("POST_HANDOVER_SUMMARY", summary),
+        }
+        for rel, (marker, text_block) in expected.items():
+            with open(os.path.join(project_root, rel), "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn(f"BEGIN_{marker}", content, f"missing {marker} markers in {rel}")
+            self.assertIn(text_block, content, f"{marker} block in {rel} is stale; run scripts/render_readme_tables.py")
+
+    def test_mp09_no_carrier_attribution_wording(self):
+        """MP-09: public docs say 'post-handover delay', not carrier-caused / carrier-driven / carrier transit."""
+        import glob
+
+        files = (glob.glob(os.path.join(project_root, "docs", "**", "*.md"), recursive=True)
+                 + glob.glob(os.path.join(project_root, "report", "*.md"))
+                 + [os.path.join(project_root, "README.md")])
+        retired = ("carrier-caused", "carrier-driven", "carrier-dominated", "carrier transit", "carrier-transit",
+                   "carrier line-haul", "carrier delay")
+        for fpath in files:
+            with open(fpath, "r", encoding="utf-8") as f:
+                low = f.read().lower()
+            rel = os.path.relpath(fpath, project_root)
+            for phrase in retired:
+                self.assertFalse(phrase in low, f"retired attribution wording {phrase!r} found in {rel}")
+
 
 if __name__ == "__main__":
     unittest.main()

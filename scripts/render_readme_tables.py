@@ -17,6 +17,7 @@ if PROJECT_ROOT not in sys.path:
 
 from scripts.run_review_econometrics import load_data, fit_models, generate_regression_markdown_table, get_db_connection
 from scripts.run_persistence_check import render_persistence_markdown
+from scripts.run_post_handover_check import render_split_markdown, render_summary_markdown
 
 def get_rendered_blocks(con):
     # 1. Economic Framework Block
@@ -123,12 +124,18 @@ def get_rendered_blocks(con):
     #    SQL views that share the headline tier rule; bootstrap intervals come from run_persistence_check.py
     persistence_content = render_persistence_markdown(con)
 
+    # 6. Post-handover delay: transit vs promise (MP-09): full corridor tables and a one-paragraph summary
+    post_handover_split_content = render_split_markdown(con)
+    post_handover_summary_content = render_summary_markdown(con)
+
     return {
         "ECONOMIC_FRAMEWORK": framework_content,
         "TIER_TABLE": tier_content,
         "SENSITIVITY_CHECK": sens_content,
         "REGRESSION_TABLE": regression_content,
         "PERSISTENCE_CHECK": persistence_content,
+        "POST_HANDOVER_SPLIT": post_handover_split_content,
+        "POST_HANDOVER_SUMMARY": post_handover_summary_content,
         "MODEL_B_CONCEPTS": model_b_concepts_content,
         "MODEL_B_ADR": model_b_adr_content,
         "MODEL_B_RESULTS": model_b_results_content,
