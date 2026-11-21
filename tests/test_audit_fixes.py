@@ -282,9 +282,6 @@ class TestAuditFixes(unittest.TestCase):
         doc_files = glob.glob(os.path.join(project_root, "docs", "**", "*.md"), recursive=True) + \
                     glob.glob(os.path.join(project_root, "report", "*.md")) + \
                     [os.path.join(project_root, "README.md")]
-        study_guide = os.path.join(project_root, "docs", "interview_prep", "STUDY_GUIDE.md")
-        if os.path.isfile(study_guide):
-            doc_files.append(study_guide)
 
         for fpath in doc_files:
             with open(fpath, "r", encoding="utf-8") as f:
@@ -401,33 +398,14 @@ class TestAuditFixes(unittest.TestCase):
         for term in ["GMV", "SLA", "3PL", "EDD", "Pareto Lift", "Cluster-Robust"]:
             self.assertIn(term, gl_text, f"Glossary missing term: {term}")
 
-    def test_d3_readme_and_study_material(self):
-        """D3 Acceptance Test: README under 200 lines, links to guide, and private study files complete."""
-        import re
+    def test_d3_readme_is_concise_landing_page(self):
+        """D3 Acceptance Test: README under 200 lines and links to the public guide."""
         readme_path = os.path.join(project_root, "README.md")
         with open(readme_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         self.assertLessEqual(len(lines), 205, f"README.md should be under ~200 lines, found {len(lines)}")
         readme_text = "".join(lines)
         self.assertIn("docs/guide/00_START_HERE.md", readme_text, "README.md must link to docs/guide/00_START_HERE.md")
-
-        # Study guide checks
-        study_guide_path = os.path.join(project_root, "docs", "interview_prep", "STUDY_GUIDE.md")
-        self.assertTrue(os.path.isfile(study_guide_path), "STUDY_GUIDE.md must exist in docs/interview_prep/")
-        with open(study_guide_path, "r", encoding="utf-8") as f:
-            sg_text = f.read()
-        self.assertIn("60-Second", sg_text)
-        self.assertIn("5-Minute", sg_text)
-        self.assertIn("Whiteboard", sg_text)
-        self.assertIn("Q25", sg_text, "STUDY_GUIDE.md must contain 25 interview questions")
-
-        # Writeup tex checks
-        writeup_tex_path = os.path.join(project_root, "docs", "interview_prep", "WRITEUP.tex")
-        self.assertTrue(os.path.isfile(writeup_tex_path), "WRITEUP.tex must exist in docs/interview_prep/")
-        with open(writeup_tex_path, "r", encoding="utf-8") as f:
-            tex_text = f.read()
-        pattern = re.compile(r"recoverable|healthy operational|transaction exposure", re.IGNORECASE)
-        self.assertFalse(pattern.search(tex_text), "WRITEUP.tex must not contain forbidden phrases")
 
     def test_d4_documentation_checks_gate_g3(self):
         """D4 / Gate G3 Test: All relative markdown links resolve, walkthrough files/functions exist, render check passes."""
