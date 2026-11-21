@@ -18,18 +18,23 @@ if PROJECT_ROOT not in sys.path:
 from scripts.run_review_econometrics import load_data, fit_models, generate_regression_markdown_table, get_db_connection
 from scripts.run_persistence_check import render_persistence_markdown
 from scripts.run_post_handover_check import render_split_markdown, render_summary_markdown
+from scripts.run_repurchase_check import render_all as render_repurchase_all
 
 def get_rendered_blocks(con):
     # 1. Economic Framework Block
     kpi = con.execute("SELECT * FROM view_executive_kpi_summary").df().iloc[0]
     p1 = con.execute("SELECT * FROM view_intervention_tier_summary WHERE priority_tier LIKE 'P1%'").df().iloc[0]
 
+    # MP-10: measured lateness -> repurchase link (guide table + one Level-1 line), computed once
+    repurchase_md, repurchase_line = render_repurchase_all(con)
+
     framework_content = (
         "```\n"
         "LEVEL 1 — Late-Order GMV & Freight (Observable)\n"
         f"  ├── Late-Order GMV:                 E_late^GMV = R$ {kpi['total_late_order_gmv_exposure']:,.2f}\n"
         f"  ├── Late-Order Freight:             E_late^freight = R$ {kpi['total_late_order_freight_exposure']:,.2f}\n"
-        f"  └── Total Late-Order Value:         E_late = R$ {kpi['total_late_transaction_exposure']:,.2f} (Late-order GMV + freight)\n\n"
+        f"  ├── Total Late-Order Value:         E_late = R$ {kpi['total_late_transaction_exposure']:,.2f} (Late-order GMV + freight)\n"
+        f"{repurchase_line}\n\n"
         "LEVEL 2 — Cost Burden (Observable)\n"
         f"  ├── Platform Freight Burden:        Total Freight / Total GMV = {kpi['overall_freight_burden_pct']:.2f}%\n"
         f"  └── High-Freight Exposure:          R$ {kpi['total_high_freight_gmv_exposure']:,.2f} GMV where Freight-to-Value >= 30%\n\n"
@@ -134,6 +139,7 @@ def get_rendered_blocks(con):
         "SENSITIVITY_CHECK": sens_content,
         "REGRESSION_TABLE": regression_content,
         "PERSISTENCE_CHECK": persistence_content,
+        "REPURCHASE_LINK": repurchase_md,
         "POST_HANDOVER_SPLIT": post_handover_split_content,
         "POST_HANDOVER_SUMMARY": post_handover_summary_content,
         "MODEL_B_CONCEPTS": model_b_concepts_content,

@@ -226,3 +226,52 @@ SELECT
 FROM pairs
 WHERE handover_date IS NOT NULL
   AND handover_date <= delivered_date;
+
+-- ----------------------------------------------------------------------------
+-- 7. LATENESS -> REPURCHASE LINK (MP-10)
+-- The project calls late-order value "exposure to customer churn" but Stage A never
+-- measured churn. This view gives one row per customer (customer_unique_id) whose FIRST
+-- DELIVERED order was placed before 2018-03-01 (so a full 180-day follow-up fits inside
+-- the data), with whether that first order was late and whether the customer placed
+-- another order (not canceled/unavailable) within 180 days after it.
+-- first_order_category = category of the highest-value item of the first order.
+-- Observational data: differences are associations, not causal effects.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW view_first_order_repurchase AS
+WITH orders_c AS (
+    SELECT order_id, customer_unique_id, customer_state, order_purchase_timestamp AS purchase_ts,
+           order_status, is_delivered, is_late, COALESCE(total_order_value, 0) AS order_value
+    FROM fact_orders
+),
+first_delivered AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY purchase_ts, order_id) AS rn
+    FROM orders_c
+    WHERE is_delivered = 1
+),
+first_category AS (
+    SELECT order_id, product_category,
+           ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY item_price DESC, order_item_id) AS rk
+    FROM fact_order_items
+)
+SELECT
+    f.customer_unique_id,
+    f.order_id AS first_order_id,
+    f.purchase_ts AS first_purchase_ts,
+    f.customer_state,
+    f.is_late AS first_order_late,
+    f.order_value AS first_order_value,
+    COALESCE(fc.product_category, 'unknown') AS first_order_category,
+    COUNT(r.order_id) AS repeat_orders_180d,
+    COALESCE(SUM(r.order_value), 0) AS repeat_value_180d,
+    CASE WHEN COUNT(r.order_id) > 0 THEN 1 ELSE 0 END AS repurchased_180d
+FROM first_delivered f
+LEFT JOIN first_category fc ON fc.order_id = f.order_id AND fc.rk = 1
+LEFT JOIN orders_c r
+       ON r.customer_unique_id = f.customer_unique_id
+      AND r.order_id <> f.order_id
+      AND r.purchase_ts > f.purchase_ts
+      AND r.purchase_ts <= f.purchase_ts + INTERVAL 180 DAY
+      AND r.order_status NOT IN ('canceled', 'unavailable')
+WHERE f.rn = 1
+  AND f.purchase_ts < TIMESTAMP '2018-03-01 00:00:00'
+GROUP BY f.customer_unique_id, f.order_id, f.purchase_ts, f.customer_state, f.is_late, f.order_value, fc.product_category;

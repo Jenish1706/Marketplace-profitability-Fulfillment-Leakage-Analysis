@@ -93,6 +93,6 @@ python scripts/run_all.py
 1. **Pipeline Execution (`pipeline/run_pipeline.py`):** Ingests raw CSVs, builds staging tables, runs SQL transformations `01_schema.sql` through `07_intervention_priority.sql`, logs row counts and financial invariants.
 2. **Pipeline Verification Gate (`tests/verify_pipeline.py`):** Runs 7 automated assertions on primary key uniqueness, foreign key integrity, non-negative amounts, and bounded rates.
 3. **Documentation Drift Check (`scripts/render_readme_tables.py --check`):** Queries DuckDB views directly and confirms that the dynamic tables in `README.md` and `report/decision_memo.md` match database ground truth.
-4. **Pytest Regression Suite (`pytest`):** Runs all 38 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
+4. **Pytest Regression Suite (`pytest`):** Runs all 41 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
 
 Execution typically completes in 45–50 seconds on modern hardware with 100% green exit code 0.

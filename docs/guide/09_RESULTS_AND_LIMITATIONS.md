@@ -54,6 +54,41 @@ Scope: 4,730 late post-handover (order, seller) pairs (seller handed over by `sh
 *Limits:* the dataset has no carrier scans, so a long post-handover leg cannot be attributed to the carrier, to last-mile or to customer availability; handover dates are recorded by sellers, so a manifest scanned before the parcel physically left would hide dispatch delay inside transit; the counterfactuals are descriptive, not causal.
 <!-- END_POST_HANDOVER_SPLIT -->
 
+The "exposure" framing treats late-order value as value exposed to customer churn, but Stage A never measured churn. This measures the lateness-to-repurchase link directly:
+
+<!-- BEGIN_REPURCHASE_LINK -->
+### Lateness → Repurchase: The Measured Link to Churn
+
+Cohort: 55,523 customers whose first delivered order was placed before 2018-03-01, so a full 180-day follow-up fits in the data. A customer "repurchased" if they placed another order (not canceled or unavailable) within 180 days of the first. Observational association, not a causal effect. Intervals are 95% (Wilson for rates; 5,000 bootstrap resamples with a fixed seed for differences and value bounds).
+
+| First order | Customers | Repurchased within 180 days |
+|---|---|---|
+| Delivered on time | 51,849 | 2.86% [2.72%, 3.01%] |
+| Delivered late | 3,674 | 2.45% [2.00%, 3.00%] |
+| **Difference (late − on time)** | | **-0.41 pts [-0.94, +0.13]** (relative -14.3%) |
+
+**Adjusted association (logit, HC1 robust SE; 18 customer-state groups, 25 category groups and 15 first-order-month groups; levels with fewer than 300 customers are pooled into "other")**
+
+| Controls | Odds ratio, late vs on time | p-value | Average marginal effect |
+|---|---|---|---|
+| State + first-order category | 0.860 [0.691, 1.071] | 0.179 | -0.39 pts [-0.92, +0.14] |
+| State + category + first-order month | 0.868 [0.695, 1.084] | 0.211 | -0.37 pts [-0.91, +0.18] |
+
+**How much value can lateness-driven churn explain? (bound on the "exposure")**
+
+| Quantity | Estimate | 95% interval |
+|---|---|---|
+| Mean repeat-purchase value per repurchaser (180 days) | R$ 159.87 | R$ 151.14 to R$ 169.28 |
+| Repurchasers "missing" among late customers if the gap were causal | 15.0 | -4.8 to 34.6 |
+| Implied repeat value at stake | R$ 2,400 | R$ -786 to R$ 5,511 |
+| … as a share of these late first orders' value (R$ 661,028) | 0.36% | -0.12% to 0.83% |
+| **Ceiling**: share of a late order's value at stake if lateness removed every repeat purchase an on-time customer would make | **2.54%** | 2.35% to 2.74% |
+
+**Reading:** late first orders go with a lower repurchase rate, but the difference is not statistically distinguishable from zero, raw or adjusted. Repeat purchase is rare (about 3% within 180 days), so lateness-driven churn can explain at most a few percent of late-order value even in the extreme case. "Exposure" is therefore an upper bound on revenue at risk, not a measured loss.
+
+*Limits:* a 180-day window and one cohort of first orders; repurchase is not lifetime value; lateness can also act through reviews and reputation, which this does not isolate; unobserved customer differences are not controlled.
+<!-- END_REPURCHASE_LINK -->
+
 ---
 
 ## 2. Null & Negative Results
@@ -102,7 +137,7 @@ The 2017 P1 cohort is chosen with the same tier rule as the headline P1 tier, ap
 - **Geography:** Brazil's continental scale and reliance on road freight create unique regional logistics frictions that differ from high-density geographies.
 
 ### Construct Validity
-- **Economic Exposure vs Out-of-Pocket Loss:** Observable late-order GMV (R\$ 985.9K) represents transaction value at risk of customer churn, not direct accounting losses. Because actual marketplace take-rates and customer acquisition costs are unobserved, illustrative mitigation scenarios (10%, 25%, 40%) model addressable exposure, not guaranteed cash recovery.
+- **Economic Exposure vs Out-of-Pocket Loss:** Observable late-order GMV (R\$ 985.9K) is transaction value that was collected, not an accounting loss; the repurchase table in Section 1 measures how much of it can plausibly be churn (an upper bound of a few percent of the value, with no statistically distinguishable effect). Because actual marketplace take-rates and customer acquisition costs are unobserved, illustrative mitigation scenarios (10%, 25%, 40%) model addressable exposure, not guaranteed cash recovery.
 
 ---
 

@@ -646,5 +646,72 @@ class TestAuditFixes(unittest.TestCase):
                 self.assertFalse(phrase in low, f"retired attribution wording {phrase!r} found in {rel}")
 
 
+    def test_mp10_repurchase_view_matches_independent_derivation(self):
+        """MP-10: view_first_order_repurchase equals an independent self-join derivation, customer by customer."""
+        view_rows = self.con.execute("SELECT COUNT(*), COUNT(DISTINCT customer_unique_id) FROM view_first_order_repurchase").fetchone()
+        self.assertEqual(view_rows[0], view_rows[1], "one row per customer")
+        mismatches = self.con.execute("""
+            WITH d AS (
+                SELECT customer_unique_id, order_id, order_purchase_timestamp AS ts, is_late,
+                       ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp, order_id) AS rn
+                FROM fact_orders WHERE is_delivered = 1),
+            f AS (SELECT * FROM d WHERE rn = 1 AND ts < TIMESTAMP '2018-03-01 00:00:00'),
+            ind AS (
+                SELECT f.customer_unique_id, f.is_late AS late,
+                       CASE WHEN EXISTS (SELECT 1 FROM fact_orders o
+                                         WHERE o.customer_unique_id = f.customer_unique_id AND o.order_id <> f.order_id
+                                           AND o.order_status NOT IN ('canceled', 'unavailable')
+                                           AND o.order_purchase_timestamp > f.ts
+                                           AND o.order_purchase_timestamp <= f.ts + INTERVAL 180 DAY) THEN 1 ELSE 0 END AS rep
+                FROM f)
+            SELECT COUNT(*) FROM ind JOIN view_first_order_repurchase v USING (customer_unique_id)
+            WHERE ind.late <> v.first_order_late OR ind.rep <> v.repurchased_180d""").fetchone()[0]
+        self.assertEqual(mismatches, 0)
+        self.assertEqual(view_rows[0], self.con.execute("SELECT COUNT(*) FROM (SELECT 1 FROM fact_orders WHERE is_delivered = 1 AND order_purchase_timestamp < TIMESTAMP '2018-03-01 00:00:00' GROUP BY customer_unique_id)").fetchone()[0])
+        rates = dict(self.con.execute("SELECT first_order_late, ROUND(100.0 * AVG(repurchased_180d), 2) FROM view_first_order_repurchase GROUP BY 1").fetchall())
+        self.assertAlmostEqual(rates[1], 2.45, delta=0.02)
+        self.assertAlmostEqual(rates[0], 2.86, delta=0.02)
+
+    def test_mp10_repurchase_analysis_is_reproducible_and_sane(self):
+        """MP-10: deterministic bootstrap (>= 2,000 resamples), intervals bracket estimates, logits converge, and the
+        value bound is ordered (implied loss within the ceiling)."""
+        from scripts.run_repurchase_check import N_BOOT, compute
+
+        self.assertGreaterEqual(N_BOOT, 2000)
+        first, second = compute(self.con), compute(self.con)
+        self.assertEqual(first["raw"], second["raw"], "a fixed seed must make the bootstrap deterministic")
+        r = first["raw"]
+        for point, interval in (("rate_late", "rate_late_ci"), ("rate_on_time", "rate_on_time_ci"), ("diff", "diff_ci"),
+                                ("v_bar", "v_bar_ci"), ("ceiling_share", "ceiling_share_ci")):
+            lo, hi = r[interval]
+            self.assertLessEqual(lo, r[point] + 1e-9, f"{point} below its interval")
+            self.assertLessEqual(r[point], hi + 1e-9, f"{point} above its interval")
+        self.assertLess(r["rate_late"], r["rate_on_time"], "late first orders go with a lower repurchase rate")
+        self.assertGreater(r["ceiling_share"], 0)
+        self.assertLessEqual(r["implied_share"], r["ceiling_share"] + 1e-9)
+        self.assertLess(r["ceiling_share"], 0.10, "repeat purchase is rare, so the churn ceiling is a few percent of value")
+        for spec in first["logit"]:
+            self.assertTrue(spec["converged"], f"logit did not converge: {spec['label']}")
+            self.assertLessEqual(spec["or_ci"][0], spec["or"])
+            self.assertLessEqual(spec["or"], spec["or_ci"][1])
+            self.assertLess(spec["ame_pts"], 0, "adjusted association keeps the direction of the raw gap")
+
+    def test_mp10_repurchase_blocks_rendered(self):
+        """MP-10: the repurchase table (guide 09) and the Level-1 line (README) equal the freshly rendered text, and the
+        docs no longer call late-order value 'at risk of customer churn'."""
+        from scripts.run_repurchase_check import render_all
+
+        table_md, level1_line = render_all(self.con)
+        for rel, expected in ((os.path.join("docs", "guide", "09_RESULTS_AND_LIMITATIONS.md"), table_md), ("README.md", level1_line)):
+            with open(os.path.join(project_root, rel), "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn(expected, content, f"repurchase block in {rel} is stale; run scripts/render_readme_tables.py")
+            if rel.endswith("09_RESULTS_AND_LIMITATIONS.md"):
+                self.assertIn("BEGIN_REPURCHASE_LINK", content)
+        for rel in ("README.md", os.path.join("report", "decision_memo.md"), os.path.join("docs", "guide", "09_RESULTS_AND_LIMITATIONS.md")):
+            with open(os.path.join(project_root, rel), "r", encoding="utf-8") as f:
+                self.assertFalse("at risk of customer churn" in f.read().lower(), f"unmeasured churn claim in {rel}")
+
+
 if __name__ == "__main__":
     unittest.main()

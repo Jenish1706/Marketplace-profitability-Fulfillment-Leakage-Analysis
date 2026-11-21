@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9.13-green.svg)](requirements.txt)
 [![Documentation](https://img.shields.io/badge/Documentation-Guide%2000--09-orange.svg)](docs/guide/00_START_HERE.md)
 [![Report](https://img.shields.io/badge/Report-Executive%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
-[![Tests](https://img.shields.io/badge/Verification-38%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Verification-41%20Passed-brightgreen.svg)](tests/)
 
 ---
 
@@ -29,7 +29,8 @@ To avoid fabricating unobserved platform overheads (commissions, payment gateway
 LEVEL 1 — Late-Order GMV & Freight (Observable)
   ├── Late-Order GMV:                 E_late^GMV = R$ 985,924.34
   ├── Late-Order Freight:             E_late^freight = R$ 164,967.79
-  └── Total Late-Order Value:         E_late = R$ 1,150,892.13 (Late-order GMV + freight)
+  ├── Total Late-Order Value:         E_late = R$ 1,150,892.13 (Late-order GMV + freight)
+  └── Measured churn link (association): first-order-late customers repurchased within 180 days at 2.45% vs 2.86% (-0.41 pts [-0.94, +0.13]); even if lateness removed every repeat purchase, at most 2.54% of a late order's value is at stake
 
 LEVEL 2 — Cost Burden (Observable)
   ├── Platform Freight Burden:        Total Freight / Total GMV = 16.57%
