@@ -719,5 +719,48 @@ class TestAuditFixes(unittest.TestCase):
                 self.assertFalse("at risk of customer churn" in f.read().lower(), f"unmeasured churn claim in {rel}")
 
 
+    def test_mp11b_storyline_is_one_chain_without_typed_numbers(self):
+        """MP-11b: README and guide 00 carry the same seven-step chain, rendered from one source, in order, each step raising
+        the next question, with no hand-typed numbers."""
+        import re
+        from scripts.render_storyline import questions, render_storyline
+
+        expected = {
+            "README.md": ("STORYLINE_README", render_storyline("docs/guide/")),
+            os.path.join("docs", "guide", "00_START_HERE.md"): ("STORYLINE_GUIDE", render_storyline("")),
+        }
+        qs = questions()
+        self.assertEqual(len(qs), 7)
+        for rel, (marker, block) in expected.items():
+            with open(os.path.join(project_root, rel), "r", encoding="utf-8") as f:
+                content = f.read()
+            m = re.search(rf"<!-- BEGIN_{marker} -->\n(.*?)\n<!-- END_{marker} -->", content, re.S)
+            self.assertIsNotNone(m, f"missing {marker} block in {rel}")
+            self.assertEqual(m.group(1), block, f"{marker} in {rel} is stale; run scripts/render_readme_tables.py")
+            positions = [content.index(f"**{q}**") for q in qs]
+            self.assertEqual(positions, sorted(positions), f"storyline questions out of order in {rel}")
+            for i, q in enumerate(qs[:-1]):
+                self.assertIn(f"This raises the next question: {qs[i + 1]}", block)
+            prose = re.sub(r"\([^)]*\)", "", block)          # drop link targets (file names contain digits)
+            prose = re.sub(r"(?m)^\d+\. ", "", prose)         # drop list numbering
+            self.assertIsNone(re.search(r"\d", prose), f"hand-typed number in the storyline of {rel}")
+
+    def test_mp11b_storyline_claims_are_supported_by_the_data(self):
+        """MP-11b: the static sentences in the chain stay true: post-handover delay is most late pairs and transit-driven,
+        repurchase shows no distinguishable effect, persistence is partial (positive but well under half of the gap)."""
+        from scripts.run_persistence_check import bootstrap_persistence, load_detail
+        from scripts.run_post_handover_check import _transit_driven, compute as post_handover
+        from scripts.run_repurchase_check import _verdict, compute as repurchase
+
+        ph = post_handover(self.con)
+        self.assertGreater(ph["counts"]["post_handover"], 0.5 * ph["counts"]["headline_late"])
+        self.assertTrue(_transit_driven(ph), "step 3 claims transit, not promise-setting, drives post-handover delay")
+        rp = repurchase(self.con)
+        self.assertEqual(_verdict(rp), "none", "step 4 claims the repurchase difference is not distinguishable from zero")
+        pers = bootstrap_persistence(load_detail(self.con))["seller"]
+        self.assertGreater(pers["gap_2018_ci"][0], 0, "step 7: some excess persists (interval above zero)")
+        self.assertLess(pers["share_remaining_pct"], 50.0, "step 7: much of the excess does not carry over")
+
+
 if __name__ == "__main__":
     unittest.main()

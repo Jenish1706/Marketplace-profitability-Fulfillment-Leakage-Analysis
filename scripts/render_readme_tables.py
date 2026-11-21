@@ -19,6 +19,7 @@ from scripts.run_review_econometrics import load_data, fit_models, generate_regr
 from scripts.run_persistence_check import render_persistence_markdown
 from scripts.run_post_handover_check import render_split_markdown, render_summary_markdown
 from scripts.run_repurchase_check import render_all as render_repurchase_all
+from scripts.render_storyline import render_storyline
 
 def get_rendered_blocks(con):
     # 1. Economic Framework Block
@@ -140,6 +141,8 @@ def get_rendered_blocks(con):
         "REGRESSION_TABLE": regression_content,
         "PERSISTENCE_CHECK": persistence_content,
         "REPURCHASE_LINK": repurchase_md,
+        "STORYLINE_README": render_storyline("docs/guide/"),
+        "STORYLINE_GUIDE": render_storyline(""),
         "POST_HANDOVER_SPLIT": post_handover_split_content,
         "POST_HANDOVER_SUMMARY": post_handover_summary_content,
         "MODEL_B_CONCEPTS": model_b_concepts_content,
@@ -192,6 +195,7 @@ def sync_all(check_only=False):
     target_files = [
         os.path.join(PROJECT_ROOT, "README.md"),
         os.path.join(PROJECT_ROOT, "report", "decision_memo.md"),
+        os.path.join(PROJECT_ROOT, "docs", "guide", "00_START_HERE.md"),
         os.path.join(PROJECT_ROOT, "docs", "guide", "01_CONCEPTS.md"),
         os.path.join(PROJECT_ROOT, "docs", "guide", "08_DESIGN_DECISIONS.md"),
         os.path.join(PROJECT_ROOT, "docs", "guide", "09_RESULTS_AND_LIMITATIONS.md"),

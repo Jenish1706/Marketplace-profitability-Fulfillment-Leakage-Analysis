@@ -14,13 +14,19 @@ Rather than treating e-commerce datasets as generic Kaggle machine learning exer
 
 ---
 
-## 2. The Core Questions It Answers
+## 2. The Core Questions It Answers, in the Order They Arise
 
-1. **Macro Inflection & Economics:** How does fulfillment performance evolve as marketplace volume scales, and what is the platform's structural logistics freight burden?
-2. **Attribution & Handover Decoupling:** Are delivery delays caused by merchant handling delays (seller dispatch deadline) or do they arise after handover, and if so is that a transit problem or a promise-setting problem?
-3. **Customer Sentiment Econometrics:** Does delivery delay cause a linear decay in customer review scores, or does the automated survey mechanism introduce an information-set confounder?
-4. **Concentration & Commercial Lift:** Are late orders distributed evenly, or do high-volume merchants generate disproportionate fulfillment friction above their GMV share (Pareto concentration lift)?
-5. **Persistence & Intervention Targeting:** Can we isolate a defensible priority tier (P1) of high-friction merchants, and how much of their seller-caused excess carries over from 2017 to 2018?
+Each step answers the question the previous one raised.
+
+<!-- BEGIN_STORYLINE_GUIDE -->
+1. **Can the data be trusted?** Orders, items, payments and reviews are joined at the right grain, and GMV and freight reconcile to the cent between layers, so no row is multiplied by a join. ([Data guide](03_DATA.md).) *This raises the next question: Is "late" measured correctly?*
+2. **Is "late" measured correctly?** A date-level comparison replaces a timestamp comparison that counted same-day afternoon deliveries as late, which removes a boundary bug and lowers the late rate. ([Methodology guide](04_METHODOLOGY.md).) *This raises the next question: Who is responsible for the lateness?*
+3. **Who is responsible for the lateness?** Late deliveries are split into those already late at seller dispatch and those delayed after handover, and the second group is tested for transit versus promise-setting. Most late deliveries arise after handover and reflect long transit rather than tight promises; the dataset has no carrier scans, so it cannot say which party causes the long leg. ([Results guide](09_RESULTS_AND_LIMITATIONS.md).) *This raises the next question: What does lateness do to customers?*
+4. **What does lateness do to customers?** Review timing and a model of what the customer knew at review time show a step-function penalty for a parcel that has not arrived, not a linear daily decay; repurchase after a late first order is measured directly, and the difference is not statistically distinguishable from zero. ([Concepts guide](01_CONCEPTS.md).) *This raises the next question: How much money is at stake?*
+5. **How much money is at stake?** Three levels keep what is observed apart from what is assumed: late-order value that was collected, the cost burden, and illustrative mitigation scenarios with assumed rates. There is no recovered cash, and the repurchase result bounds how much of the late value can be churn. ([Methodology guide](04_METHODOLOGY.md).) *This raises the next question: Where should operations intervene?*
+6. **Where should operations intervene?** Deterministic percentile tiers on seller-caused exposure rank sellers for review, and Pareto concentration lift shows that late exposure is more concentrated than sales. ([Design decisions](08_DESIGN_DECISIONS.md).) *This raises the next question: Does the targeting hold next year?*
+7. **Does the targeting hold next year?** The same tier rule applied to the first year alone and followed into the next shows partial persistence: part of the excess carries over and much of it does not, so the tier is a prioritisation list, not proof of a fixed seller trait. ([Results guide](09_RESULTS_AND_LIMITATIONS.md).) *This closes the chain.*
+<!-- END_STORYLINE_GUIDE -->
 
 ---
 
@@ -93,6 +99,6 @@ python scripts/run_all.py
 1. **Pipeline Execution (`pipeline/run_pipeline.py`):** Ingests raw CSVs, builds staging tables, runs SQL transformations `01_schema.sql` through `07_intervention_priority.sql`, logs row counts and financial invariants.
 2. **Pipeline Verification Gate (`tests/verify_pipeline.py`):** Runs 7 automated assertions on primary key uniqueness, foreign key integrity, non-negative amounts, and bounded rates.
 3. **Documentation Drift Check (`scripts/render_readme_tables.py --check`):** Queries DuckDB views directly and confirms that the dynamic tables in `README.md` and `report/decision_memo.md` match database ground truth.
-4. **Pytest Regression Suite (`pytest`):** Runs all 41 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
+4. **Pytest Regression Suite (`pytest`):** Runs all 43 unit and regression tests in `tests/test_pipeline.py` and `tests/test_audit_fixes.py`.
 
 Execution typically completes in 45–50 seconds on modern hardware with 100% green exit code 0.

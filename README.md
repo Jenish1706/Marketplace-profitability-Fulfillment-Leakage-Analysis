@@ -5,16 +5,23 @@
 [![Python](https://img.shields.io/badge/Python-3.9%20to%203.12-green.svg)](requirements.txt)
 [![Documentation](https://img.shields.io/badge/Documentation-Guide%2000--09-orange.svg)](docs/guide/00_START_HERE.md)
 [![Report](https://img.shields.io/badge/Report-Executive%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
-[![Tests](https://img.shields.io/badge/Verification-41%20Passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Verification-43%20Passed-brightgreen.svg)](tests/)
 
 ---
 
 ## 1. Executive Business Problem & Approach
 
-As marketplace Gross Merchandise Value (GMV) scales, fulfillment friction frequently compresses contribution economics. This project analyzes **99,441 commercial orders** across Brazilian e-commerce (Olist dataset) to answer three executive operations questions:
-1. **Fulfillment Attribution:** Are delivery delays driven by merchant dispatch breaches, or do they arise after handover, and if so is that a transit problem or a promise-setting problem?
-2. **Customer Sentiment Econometrics:** Does delivery delay degrade customer review scores through linear daily decay, or does automated survey timing create an unarrived-package step function penalty?
-3. **Targeted Intervention:** Can high-friction merchants be isolated into a high-leverage priority cohort rather than penalizing sellers indiscriminately, and how much of that targeting carries over to the following year?
+As marketplace Gross Merchandise Value (GMV) scales, fulfillment friction frequently compresses contribution economics. This project analyzes **99,441 commercial orders** across Brazilian e-commerce (Olist dataset) to answer seven questions, in the order they arise (each step answers the question the previous one raised):
+
+<!-- BEGIN_STORYLINE_README -->
+1. **Can the data be trusted?** Orders, items, payments and reviews are joined at the right grain, and GMV and freight reconcile to the cent between layers, so no row is multiplied by a join. ([Data guide](docs/guide/03_DATA.md).) *This raises the next question: Is "late" measured correctly?*
+2. **Is "late" measured correctly?** A date-level comparison replaces a timestamp comparison that counted same-day afternoon deliveries as late, which removes a boundary bug and lowers the late rate. ([Methodology guide](docs/guide/04_METHODOLOGY.md).) *This raises the next question: Who is responsible for the lateness?*
+3. **Who is responsible for the lateness?** Late deliveries are split into those already late at seller dispatch and those delayed after handover, and the second group is tested for transit versus promise-setting. Most late deliveries arise after handover and reflect long transit rather than tight promises; the dataset has no carrier scans, so it cannot say which party causes the long leg. ([Results guide](docs/guide/09_RESULTS_AND_LIMITATIONS.md).) *This raises the next question: What does lateness do to customers?*
+4. **What does lateness do to customers?** Review timing and a model of what the customer knew at review time show a step-function penalty for a parcel that has not arrived, not a linear daily decay; repurchase after a late first order is measured directly, and the difference is not statistically distinguishable from zero. ([Concepts guide](docs/guide/01_CONCEPTS.md).) *This raises the next question: How much money is at stake?*
+5. **How much money is at stake?** Three levels keep what is observed apart from what is assumed: late-order value that was collected, the cost burden, and illustrative mitigation scenarios with assumed rates. There is no recovered cash, and the repurchase result bounds how much of the late value can be churn. ([Methodology guide](docs/guide/04_METHODOLOGY.md).) *This raises the next question: Where should operations intervene?*
+6. **Where should operations intervene?** Deterministic percentile tiers on seller-caused exposure rank sellers for review, and Pareto concentration lift shows that late exposure is more concentrated than sales. ([Design decisions](docs/guide/08_DESIGN_DECISIONS.md).) *This raises the next question: Does the targeting hold next year?*
+7. **Does the targeting hold next year?** The same tier rule applied to the first year alone and followed into the next shows partial persistence: part of the excess carries over and much of it does not, so the tier is a prioritisation list, not proof of a fixed seller trait. ([Results guide](docs/guide/09_RESULTS_AND_LIMITATIONS.md).) *This closes the chain.*
+<!-- END_STORYLINE_README -->
 
 For the comprehensive 10-part technical documentation, start with the **[Public Guide: 00_START_HERE.md](docs/guide/00_START_HERE.md)**.
 
