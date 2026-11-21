@@ -49,14 +49,14 @@ def get_rendered_blocks(con):
     # 2. Tier Table Block
     tiers = con.execute("SELECT * FROM view_intervention_tier_summary ORDER BY priority_tier").df()
     playbooks = {
-        'P1': "Lead-time calibration, packaging audit, carrier handoff inspection",
-        'P2': "Carrier dispatch inspection, lane-specific carrier re-allocation",
+        'P1': "Lead-time calibration, packaging audit, handover inspection",
+        'P2': "Handover inspection, lane-specific post-handover transit review",
         'P3': "Automated portal threshold warnings; 30-day monitoring window",
         'P4': "Routine partner management; low-volume sellers ($N < 30$) and standard baseline operations"
     }
 
     tier_lines = [
-        "| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Late Mitigation (Base 25%) | Recommended Operational Action |",
+        "| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Illustrative Mitigation (Assumed 25%) | Recommended Operational Action |",
         "|---|---|---|---|---|---|---|---|---|"
     ]
     for _, r in tiers.iterrows():

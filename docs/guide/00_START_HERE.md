@@ -72,7 +72,7 @@ This guide is structured sequentially to take an engineer, data scientist, or op
 Follow these steps to reproduce the entire project from scratch on Windows:
 
 ### Step 1: Clone and Inspect Environment
-Ensure Python 3.9+ is installed:
+Ensure Python 3.9 to 3.12 is installed (the pinned `numpy==1.26.4` has no Python 3.13 wheel):
 ```powershell
 python --version
 ```

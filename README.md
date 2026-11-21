@@ -2,7 +2,7 @@
 ### Operational Unit Economics · Root-Cause Attribution · Pareto Allocation · Econometric Modeling
 
 [![SQL](https://img.shields.io/badge/SQL-DuckDB-blue.svg)](sql/)
-[![Python](https://img.shields.io/badge/Python-3.9.13-green.svg)](requirements.txt)
+[![Python](https://img.shields.io/badge/Python-3.9%20to%203.12-green.svg)](requirements.txt)
 [![Documentation](https://img.shields.io/badge/Documentation-Guide%2000--09-orange.svg)](docs/guide/00_START_HERE.md)
 [![Report](https://img.shields.io/badge/Report-Executive%20Decision%20Memo-red.svg)](report/decision_memo.pdf)
 [![Tests](https://img.shields.io/badge/Verification-41%20Passed-brightgreen.svg)](tests/)
@@ -58,10 +58,10 @@ LEVEL 3 — Illustrative Scenarios (Assumed Rates, Not Measured)
 Sellers are segmented into transparent priority tiers based on seller-caused dispatch delay exposure:
 
 <!-- BEGIN_TIER_TABLE -->
-| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Late Mitigation (Base 25%) | Recommended Operational Action |
+| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Illustrative Mitigation (Assumed 25%) | Recommended Operational Action |
 |---|---|---|---|---|---|---|---|---|
-| **P1 - Immediate Intervention** | **113** | **3.65%** | 20,576 | R$ 2.79M | **R$ 181,377.55** | **48.85%** | **R$ 45,344.39** | Lead-time calibration, packaging audit, carrier handoff inspection |
-| P2 - Operational Investigation | 211 | 6.82% | 33,823 | R$ 3.72M | R$ 54,637.04 | 14.72% | R$ 13,659.26 | Carrier dispatch inspection, lane-specific carrier re-allocation |
+| **P1 - Immediate Intervention** | **113** | **3.65%** | 20,576 | R$ 2.79M | **R$ 181,377.55** | **48.85%** | **R$ 45,344.39** | Lead-time calibration, packaging audit, handover inspection |
+| P2 - Operational Investigation | 211 | 6.82% | 33,823 | R$ 3.72M | R$ 54,637.04 | 14.72% | R$ 13,659.26 | Handover inspection, lane-specific post-handover transit review |
 | P3 - Operational Monitoring | 323 | 10.44% | 29,095 | R$ 3.98M | R$ 39,267.34 | 10.58% | R$ 9,816.83 | Automated portal threshold warnings; 30-day monitoring window |
 | P4 - Low Volume / Not Prioritised | 2,448 | 79.10% | 16,516 | R$ 3.10M | R$ 95,999.21 | 25.86% | R$ 23,999.80 | Routine partner management; low-volume sellers ($N < 30$) and standard baseline operations |
 <!-- END_TIER_TABLE -->

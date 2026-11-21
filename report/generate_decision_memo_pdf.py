@@ -355,10 +355,10 @@ def build_pdf():
     ]
     
     playbooks = {
-        'P1': "Lead-time calibration, packaging audit, carrier handoff inspection",
-        'P2': "Carrier dispatch inspection, lane-specific carrier re-allocation",
+        'P1': "Lead-time calibration, packaging audit, handover inspection",
+        'P2': "Handover inspection, lane-specific post-handover transit review",
         'P3': "Automated portal threshold warnings; 30-day monitoring window",
-        'P4': "Routine partner management; low-volume sellers (N<30) and healthy benchmarks"
+        'P4': "Routine partner management; low-volume sellers (N<30) and standard baseline operations"
     }
 
     for _, row in tiers_df.iterrows():

@@ -1,5 +1,6 @@
 # Pinned dependencies for Marketplace Profitability & Fulfillment Leakage Analysis
-# Tested and verified on Python 3.9.13 (x86_64 / Windows / Linux)
+# Supported: Python 3.9 to 3.12 (numpy 1.26.4 has no wheels for Python 3.13). Verified on Python 3.9.13 (Windows);
+# the 18 Nov re-audit ran a fresh Linux clone on Python 3.11.
 duckdb==1.4.5
 pandas==2.3.3
 numpy==1.26.4

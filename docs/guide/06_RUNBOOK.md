@@ -12,7 +12,7 @@
 Follow these exact commands to configure a pristine environment:
 
 ### Step 1: Open PowerShell and Verify Python
-Python 3.9+ is required (Python 3.9.13 tested):
+Python 3.9 to 3.12 is required (verified on Python 3.9.13 on Windows; the 18 Nov re-audit ran a fresh Linux clone on 3.11; the pinned `numpy==1.26.4` does not install on 3.13):
 ```powershell
 python --version
 ```

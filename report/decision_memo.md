@@ -3,7 +3,7 @@
 **TO:** Chief Operating Officer (COO), VP of Marketplace Operations  
 **FROM:** Marketplace Commercial & Operational Analytics  
 **DATE:** September 10, 2026 (Audited & Reconciled: November 2026)  
-**SUBJECT:** Operational Diagnostic & Priority Intervention Strategy: Recovering Fulfillment Leakage  
+**SUBJECT:** Operational Diagnostic & Priority Intervention Strategy: Fulfillment Leakage Exposure and Illustrative Mitigation  
 
 ---
 
@@ -46,12 +46,14 @@ Fulfillment leakage is driven by three distinct operational mechanisms:
 
 Rather than arbitrary weighted scoring, sellers are classified into deterministic tiers using percentile cutoffs applied to qualified operational sellers ($N \ge 30$ orders) based on seller-caused delay exposure:
 
-| Priority Tier | Seller Count | % Seller Base | Order Volume* | GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Late Mitigation (Base 25%) | Recommended Operational Action |
+<!-- BEGIN_TIER_TABLE -->
+| Priority Tier | Seller Count | % Seller Base | Total Orders* | Total GMV (R$) | Seller Late Exp (R$) | % Platform Seller Exp | Illustrative Mitigation (Assumed 25%) | Recommended Operational Action |
 |---|---|---|---|---|---|---|---|---|
-| **P1 — Immediate Intervention** | **113** | **3.65%** | 20,576 | R$ 2.79M | **R$ 181,377.55** | **48.85%** | **R$ 45,344.39** | Mandatory 24–48hr dispatch SLA, dynamic EDD recalibration |
-| **P2 — Operational Investigation** | 211 | 6.82% | 33,823 | R$ 3.72M | R$ 54,637.04 | 14.72% | R$ 13,659.26 | Carrier dispatch inspection, packaging dimension audit |
-| **P3 — Operational Monitoring** | 323 | 10.44% | 29,095 | R$ 3.98M | R$ 39,267.34 | 10.58% | R$ 9,816.84 | Automated dashboard threshold alerts; 30-day monitoring |
-| **P4 — Low Volume / Not Prioritised** | 2,448 | 79.10% | 16,516 | R$ 3.10M | R$ 95,999.21 | 25.86% | R$ 23,999.80 | Standard commercial governance; volume threshold qualification |
+| **P1 - Immediate Intervention** | **113** | **3.65%** | 20,576 | R$ 2.79M | **R$ 181,377.55** | **48.85%** | **R$ 45,344.39** | Lead-time calibration, packaging audit, handover inspection |
+| P2 - Operational Investigation | 211 | 6.82% | 33,823 | R$ 3.72M | R$ 54,637.04 | 14.72% | R$ 13,659.26 | Handover inspection, lane-specific post-handover transit review |
+| P3 - Operational Monitoring | 323 | 10.44% | 29,095 | R$ 3.98M | R$ 39,267.34 | 10.58% | R$ 9,816.83 | Automated portal threshold warnings; 30-day monitoring window |
+| P4 - Low Volume / Not Prioritised | 2,448 | 79.10% | 16,516 | R$ 3.10M | R$ 95,999.21 | 25.86% | R$ 23,999.80 | Routine partner management; low-volume sellers ($N < 30$) and standard baseline operations |
+<!-- END_TIER_TABLE -->
 
 *\*Order volumes represent seller-order engagements across tiers (multi-seller orders mapped to each seller).*  
 *Volume Cutoff Sensitivity:* Testing alternative volume cutoffs demonstrates stability:

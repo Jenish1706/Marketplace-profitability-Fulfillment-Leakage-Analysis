@@ -121,4 +121,4 @@
 - **Alternatives Considered:**
   - *Docker Containerization:* Adds Docker desktop installation friction on Windows with zero performance benefit for local analytical execution.
   - *Unpinned `requirements.txt`:* Subject to upstream library API breaking changes.
-- **Consequences:** 100% reproducible execution on any Python 3.9+ environment in under 50 seconds with zero infrastructure overhead.
+- **Consequences:** 100% reproducible execution on any Python 3.9 to 3.12 environment in under 50 seconds with zero infrastructure overhead.

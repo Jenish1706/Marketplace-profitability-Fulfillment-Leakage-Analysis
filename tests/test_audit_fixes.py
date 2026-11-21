@@ -542,22 +542,9 @@ class TestAuditFixes(unittest.TestCase):
         res = subprocess.run([sys.executable, os.path.join(project_root, "scripts", "render_readme_tables.py"), "--check"], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, f"Render check failed: {res.stdout} {res.stderr}")
 
-    def test_c1_cleanup_plan_inventory_complete(self):
-        """C1 Acceptance Test: CLEANUP_PLAN.md exists and inventories all required categories."""
-        if not os.path.isdir(os.path.join(project_root, ".audit")):
-            return  # .audit/ is an untracked private directory not present in fresh clone
-        plan_path = os.path.join(project_root, ".audit", "CLEANUP_PLAN.md")
-        self.assertTrue(os.path.isfile(plan_path), "CLEANUP_PLAN.md must exist")
-        with open(plan_path, "r", encoding="utf-8") as f:
-            plan_text = f.read()
-        self.assertIn("Category 1: Caches", plan_text)
-        self.assertIn("Category 2: Run Logs", plan_text)
-        self.assertIn("Category 5: Superseded", plan_text)
-        self.assertIn("Category 6: Audit Transfer Files", plan_text)
-
-    def test_c2_cleanup_execution_and_log(self):
-        """C2 Acceptance Test: CLEANUP_LOG.md exists, superseded docs removed, and gitignore hardened."""
-        # Confirm superseded docs are no longer present
+    def test_c2_superseded_docs_removed(self):
+        """C2 Acceptance Test: superseded docs are no longer present. (The private cleanup-record checks that used to
+        live here moved to the untracked .audit/repro/ so the public suite never depends on a private folder.)"""
         superseded = [
             "docs/data_lineage.md",
             "docs/stakeholder_requirements.md",
@@ -567,15 +554,34 @@ class TestAuditFixes(unittest.TestCase):
         for s in superseded:
             self.assertFalse(os.path.exists(os.path.join(project_root, s)), f"Superseded file must be removed: {s}")
 
-        if not os.path.isdir(os.path.join(project_root, ".audit")):
-            return  # .audit/ is an untracked private directory not present in fresh clone
+    def test_mp07_framing_python_range_and_no_private_dependencies(self):
+        """MP-07: memo subject and tier column say the mitigation is illustrative, the tested Python range is stated, and
+        no public test reads the private folder (a test that returns early would be counted as passed)."""
+        def read(*parts):
+            with open(os.path.join(project_root, *parts), "r", encoding="utf-8") as f:
+                return f.read()
 
-        log_path = os.path.join(project_root, ".audit", "CLEANUP_LOG.md")
-        self.assertTrue(os.path.isfile(log_path), "CLEANUP_LOG.md must exist")
-        with open(log_path, "r", encoding="utf-8") as f:
-            log_text = f.read()
-        self.assertIn("Total Deletions", log_text)
-        self.assertIn("Total Space Freed", log_text)
+        memo = read("report", "decision_memo.md")
+        subject = next(l for l in memo.splitlines() if l.startswith("**SUBJECT:**"))
+        self.assertNotIn("recover", subject.lower(), "memo subject must not promise recovered cash")
+        for text, rel in ((read("README.md"), "README.md"), (memo, "decision_memo.md")):
+            self.assertIn("Illustrative Mitigation (Assumed 25%)", text, f"tier column in {rel} must say the rate is assumed")
+            self.assertNotIn("Late Mitigation", text, f"old tier column header in {rel}")
+
+        header = read("requirements.txt").splitlines()[:4]
+        self.assertTrue(any("3.12" in l for l in header), "requirements.txt header must state the supported range")
+        for rel in ("README.md", os.path.join("docs", "guide", "06_RUNBOOK.md"), os.path.join("docs", "guide", "00_START_HERE.md"),
+                    "requirements.txt"):
+            text = read(rel)
+            self.assertIn("3.12", text, f"{rel} must state the Python range 3.9 to 3.12")
+            self.assertNotIn("3.9+", text, f"{rel} still says 3.9+")
+
+        private_dir = "." + "audit"  # built piecewise so this test does not match its own search
+        own_source = read("tests", "test_audit_fixes.py")
+        self.assertNotIn(f'"{private_dir}"', own_source, "public tests must not read the private folder")
+        self.assertNotIn(f"'{private_dir}'", own_source, "public tests must not read the private folder")
+        self.assertFalse(os.path.exists(os.path.join(project_root, "docs", "GLOSSARY.md")), "duplicate glossary pointer must stay deleted")
+
 
     def test_mp09_post_handover_view_ties_to_headline_attribution(self):
         """MP-09: view_post_handover_pairs reproduces the headline split of late (order, seller) pairs."""
